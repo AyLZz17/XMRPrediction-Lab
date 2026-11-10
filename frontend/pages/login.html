@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#09090b">
+    <title>Acceso — AyLZz Crypto Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="login-page">
+    <main class="login-layout">
+        <section class="login-visual">
+            <div class="login-brand">
+                <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="brand-copy"><strong>AyLZz</strong><small>CRYPTO LAB</small></span>
+            </div>
+            <div class="visual-copy">
+                <p class="eyebrow"><span></span> MONERO INTELLIGENCE</p>
+                <h1>Analiza el mercado.<br><em>Cuestiona el modelo.</em></h1>
+                <p>Un espacio experimental para visualizar XMR-USD y comparar predicciones de series de tiempo con resultados reproducibles.</p>
+            </div>
+            <div class="login-chart" aria-hidden="true">
+                <div class="login-chart-head"><span>XMR / USD</span><strong>VISTA PREVIA</strong></div>
+                <svg viewBox="0 0 700 240">
+                    <defs>
+                        <linearGradient id="login-fill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#ff3535" stop-opacity=".32"/>
+                            <stop offset="1" stop-color="#ff3535" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <path class="login-area" d="M0 190 C55 180 75 205 120 174 S190 142 225 160 S280 125 325 137 S382 96 420 112 S482 73 525 88 S580 36 630 55 S674 22 700 30 V240 H0Z"/>
+                    <path class="login-line" d="M0 190 C55 180 75 205 120 174 S190 142 225 160 S280 125 325 137 S382 96 420 112 S482 73 525 88 S580 36 630 55 S674 22 700 30"/>
+                </svg>
+            </div>
+            <div class="visual-foot"><span>DATOS DIARIOS</span><span>5 MODELOS</span><span>HORIZONTE 1 DÍA</span></div>
+        </section>
+
+        <section class="login-form-side">
+            <div class="login-form-wrap">
+                <span class="login-step">ACCESO AL PROTOTIPO / 01</span>
+                <h2>Bienvenido al laboratorio</h2>
+                <p class="login-intro">Ingresa un correo para iniciar una sesión local de demostración.</p>
+                <form id="local-login-form">
+                    <label for="local-email">CORREO DEL INVESTIGADOR</label>
+                    <input id="local-email" type="email" autocomplete="email" placeholder="nombre@aylzz.lab" value="demo@aylzz.lab" required>
+                    <label for="local-password">CLAVE DE ACCESO</label>
+                    <input id="local-password" type="password" autocomplete="current-password" placeholder="Mínimo 4 caracteres" value="demo" minlength="4" required>
+                    <button class="primary-button login-submit" type="submit">
+                        <span>Entrar al portal</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+                    </button>
+                </form>
+                <p class="login-note" id="login-note">La sesión es local y no representa autenticación de producción.</p>
+                <div class="login-disclaimer">
+                    <span>!</span>
+                    <p>Proyecto académico. Las visualizaciones y predicciones no constituyen asesoría financiera.</p>
+                </div>
+            </div>
+            <footer>AYLZZ · SISTEMAS INTELIGENTES · 2026</footer>
+        </section>
+    </main>
+    <script src="../js/login.js"></script>
+</body>
+</html>

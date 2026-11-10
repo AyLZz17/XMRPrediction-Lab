@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+"$ROOT/.figma/make/build-static"
+
+exec python3 -m http.server "$PORT" \
+  --bind 0.0.0.0 \
+  --directory "$ROOT/.figma/make/dist"

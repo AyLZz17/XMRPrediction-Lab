@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+OUTPUT="$ROOT/.figma/make/dist"
+
+rm -rf "$OUTPUT"
+mkdir -p "$OUTPUT/login" "$OUTPUT/dashboard"
+
+cp -R "$ROOT/assets" "$ROOT/css" "$ROOT/js" "$OUTPUT/"
+cp "$ROOT/pages/login.html" "$OUTPUT/login/index.html"
+cp "$ROOT/pages/dashboard.html" "$OUTPUT/dashboard/index.html"
+
+cat > "$OUTPUT/index.html" <<'EOF'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=./login/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MÆRIS-Q Access</title>
+</head>
+<body>
+  <p><a href="./login/">Continue to MÆRIS-Q Access</a></p>
+</body>
+</html>
+EOF

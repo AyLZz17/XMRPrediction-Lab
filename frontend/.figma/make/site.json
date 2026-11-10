@@ -1,0 +1,10 @@
+{
+  "description": "AyLZz Crypto Lab es un portal académico de análisis y predicción experimental de Monero (XMR-USD), con gráficos interactivos y comparación reproducible de modelos.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

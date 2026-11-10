@@ -1,44 +1,28 @@
 # MEMORY.md -- Memoria de corto plazo (max. 50 lineas)
-> Se reescribe tras cada tarea. Lo critico y permanente se promueve a AGENTS.md.
+> Reescribir tras cada tarea; lo permanente va en AGENTS.md.
 
-## Contexto
-- LSTM/GRU frente a media movil, regresion lineal y ARIMA. MAE, RMSE, MAPE y
-  acierto de direccion. **No es asesoria financiera**, no simula trading
-  (R-11/R-12): aviso en UI, `/api/v1/meta/disclaimer` y respuestas de prediccion.
-- Documentos legales en `/terms`, `/privacy`, `/data-policy`, `/cookies`,
-  `/legal-notice`, enlazados desde el pie en TODAS las rutas. Version unica:
-  `LegalDocuments.CURRENT_VERSION` (backend) = `LEGAL_VERSION` (frontend) =
-  `GET /api/v1/meta/legal`; version 2026-10-01. Redaccion propia, **pendiente de
-  revisar por abogado colombiano**.
+## Contexto actual
+- AyLZz Crypto Lab es un portal preliminar para análisis diario de Monero
+  (XMR-USD); arquitectura y planeación finales pendientes del usuario.
+- Docker Compose integra frontend Nginx y API FastAPI en `Monero/src/api.py`.
+- Datos Yahoo Finance -> `Monero/data/raw/xmr_usd_diario.csv` -> preparación
+  del dataset -> predicción de cierre del siguiente día.
+- La UI consume velas OHLCV reales, benchmark de métricas y resultados del API.
+- Persistencia/media móvil no entrenan; ARIMA/LSTM/GRU entrenan al detectar un
+  dataset nuevo. Volúmenes Docker conservan datos, modelos y resultados.
+- Acceso local de demostración solamente; no es asesoría financiera.
 
-## Tarea en curso (T-045, hecha)
-- Refinado visual del HUD: negro profundo, paneles oscuros, cian solo en
-  foco/interaccion/conectividad, rojo solo caida/error, verde subida/exito,
-  ambar advertencia. Sin glassmorphism decorativo ni violeta.
-- Cambios: MetricCard con valor en tinta (no cian), `Panel tone=accent`
-  neutro, Alert info neutro, StatusPill roles neutros, BrandMark neutro,
-  strip de AuthenticatedLayout sin ActivityBar indeterminado, PublicLayout
-  con CTA neutras y header `min-h-header`, landing sin circulo blur,
-  sparkline de Dashboard con velas reales (antes inventado, R-21),
-  MetricComparisonChart sin serie roja (direction ahora verde, MAPE gris),
-  arreglo `text-bg-root` invalido en Header y TS2322 preexistente en
-  `types/analyst.ts` (T-044 decia build OK; `git stash`+tsc lo desmintio).
+## Verificado en esta tarea
+- `docker compose build` y arranque de los dos servicios correctos.
+- API: health, OHLCV, métricas, refresco y predicción naive/ARIMA/LSTM.
+- `python -m pytest -q`: 17 pruebas aprobadas en el contenedor.
+- UI en navegador: autenticación demo, métricas y gráfico; vista móvil de
+  390 px sin desbordamiento de página.
+- Gráfico: velas/línea, volumen y rangos 1M/3M/1A ya existían. Se añadieron
+  SMA 9, Volumen SMA 9 y rangos diarios 1D/5D/6M. Proveedor actual no soporta
+  intervalos intradía; probado con ambos indicadores y móvil sin overflow.
 
-## Verificado en esta sesion
-- `npm run lint` = 0 · `npm test` = **183/183** · `npm run build` OK
-  (tsc + vite). Vista previa local en `:4173`: `/`, `/about`, `/login`
-  renderizan con backend ausente (estados de error en rojo controlado);
-  captura a 360 px sin desbordes de cabecera.
-
-## Pendiente inmediato
-- Push a `main` y `BackEnd/First` (Render y Vercel auto-despliegan).
-- Cliente: habilitar Gmail API con scope `gmail.send`, redirect URI del OAuth
-  Playground, refresh token, y fijar en Render `MAIL_TRANSPORT=gmail` +
-  `GOOGLE_MAIL_REFRESH_TOKEN`. Entonces reintentar registro y Google.
-- Sin resolver: rotacion de credenciales expuestas, `ML_SERVICE_URL` con
-  `sync: false`, callback de Google Cloud, supuesto **D-14** (dashboard publico),
-  revision juridica de los cinco documentos legales.
-
-## Reglas nuevas promovidas
-- R-53 consentimiento en servidor/ misma transaccion; reenvio anti-enumeracion.
-- R-54 el pie y lo que debe sobrevivir a fallos usan `<a href>`, nunca `<Link>`.
+## Pendiente
+- Incorporar la arquitectura y planeación que entregará el usuario.
+- Ejecutar `docker compose up --build` desde la raíz para iniciar el portal en
+  `http://localhost:8081` (el puerto 8080 ya estaba ocupado en este equipo).

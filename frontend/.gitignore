@@ -1,44 +1,21 @@
-# Dependencias
 node_modules/
-.pnp
-.pnp.js
-
-# Build
 dist/
-dist-ssr/
 build/
-*.local
-
-# Certificados TLS de desarrollo: NUNCA se versionan (R-14, R-27)
-certs/
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-
-# Variables de entorno reales (solo se versiona .env.example)
-.env
-.env.*
-!.env.example
-
-# Cobertura y cache
-coverage/
-.nyc_output/
+.cache/
+.env*
 .vite/
-.eslintcache
-
-# Editores / SO
-.vscode/*
-!.vscode/extensions.json
-.idea/
-.DS_Store
-Thumbs.db
-*.swp
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
 logs/
 *.log
+.claude-replay.*
+.tmp-*
+/.figma/design-context/
+
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/

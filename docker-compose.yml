@@ -1,258 +1,40 @@
-# =====================================================================
-# XMR-Forecast :: orquestacion completa
-#
-# Topologia de redes (R-27, R-32):
-#   - `edge`   : frontend (unico servicio con puerto publicado hacia el host).
-#   - `backend`: backend <-> frontend, backend <-> ml-service, backend <-> datos.
-#   - `data`   : PostgreSQL, Redis y MLflow. RED INTERNA: no tiene puertos
-#                publicados en el host, de modo que no son alcanzables desde
-#                fuera del host Docker.
-#
-# HTTPS es obligatorio en todos los servicios (R-33). El cliente HTTP plano esta
-# deshabilitado; solo se expone TLS.
-# =====================================================================
-
-name: xmr-forecast
-
-# ------------------------------------------------------------------ redes
-networks:
-  edge:
-    name: xmr-edge
-    driver: bridge
-  backend:
-    name: xmr-backend
-    driver: bridge
-    internal: false
-  data:
-    # Red interna: sin salida a internet y sin puertos publicados.
-    name: xmr-data
-    driver: bridge
-    internal: true
-
-# --------------------------------------------------------------- volumenes
-volumes:
-  postgres-data:
-  mlflow-data:
-  redis-data:
-
 services:
-
-  # ==================================================================
-  # Datos. Ninguno publica puertos en el host (R-27).
-  # ==================================================================
-  postgres:
-    image: postgres:15-alpine
-    container_name: xmr-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-xmr_forecast}
-      POSTGRES_USER: ${POSTGRES_USER:-xmr}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
-      # Acepta solo conexiones cifradas cuando el cliente las ofrece.
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
-    networks:
-      - data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xmr} -d ${POSTGRES_DB:-xmr_forecast}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  redis:
-    image: redis:7-alpine
-    container_name: xmr-redis
-    restart: unless-stopped
-    # requirepass evita dejar Redis abierto dentro de la red de datos.
-    command: >
-      sh -c 'redis-server
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --requirepass "$$REDIS_PASSWORD"'
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD es obligatorio}
-    volumes:
-      - redis-data:/data
-    networks:
-      - data
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  # ==================================================================
-  # MLflow. Solo alcanzable desde la red de datos (R-27).
-  # ==================================================================
-  mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.8.1
-    container_name: xmr-mlflow
-    restart: unless-stopped
-    # SQLite local: la imagen oficial no trae psycopg2 y no acepta Postgres
-    # sin driver. Para Postgres, fijar MLFLOW_BACKEND_STORE_URI con una
-    # imagen propia que incluya el driver.
-    command: >
-      mlflow server
-      --host 0.0.0.0
-      --port 5000
-      --backend-store-uri ${MLFLOW_BACKEND_STORE_URI:-sqlite:////mlflow/artifacts/mlflow.db}
-      --artifacts-destination /mlflow/artifacts
-    environment:
-      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
-    volumes:
-      - mlflow-data:/mlflow/artifacts
-      - ./docker/certs:/certs:ro
-    # Puerto publicado solo en loopback: no es alcanzable desde la red externa.
-    ports:
-      - "127.0.0.1:5000:5000"
-    networks:
-      - data
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:5000/')\""]
-      interval: 20s
-      timeout: 8s
-      retries: 10
-      start_period: 40s
-
-  # ==================================================================
-  # Servicio de Machine Learning. No es publico (R-32).
-  # ==================================================================
-  ml-service:
+  monero-api:
     build:
-      # Contexto raiz (igual que el backend y que Render): el Dockerfile usa
-      # rutas con prefijo `ml-service/`.
-      context: .
-      dockerfile: ml-service/Dockerfile
-    container_name: xmr-ml-service
-    restart: unless-stopped
+      context: ./Monero
     environment:
-      ML_SSL_CERTFILE: ${ML_SSL_CERTFILE:-/certs/ml-service/cert.pem}
-      ML_SSL_KEYFILE: ${ML_SSL_KEYFILE:-/certs/ml-service/key.pem}
-      ML_SSL_CAFILE: ${ML_SSL_CAFILE:-/certs/ca/ca.crt}
-      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
-      MLFLOW_SSL_CAFILE: /certs/ca/ca.crt
-      ML_ALLOW_PLAINTEXT_DEV: "false"
+      PYTHONUNBUFFERED: "1"
+      TF_CPP_MIN_LOG_LEVEL: "2"
     volumes:
-      - ./docker/certs:/certs:ro
-      - ./artifacts:/app/artifacts
-    ports:
-      # Solo loopback, para depuracion. El backend usa https://ml-service:8443.
-      - "127.0.0.1:8000:8443"
-    networks:
-      - backend
-      - data
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request,ssl;urllib.request.urlopen('https://127.0.0.1:8443/health',context=ssl._create_unverified_context())\""]
-      interval: 20s
-      timeout: 8s
-      retries: 10
-      start_period: 40s
-
-  # ==================================================================
-  # Backend principal. Autenticacion, API y orquestacion.
-  # ==================================================================
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    container_name: xmr-backend
+      - monero-data:/app/data
+      - monero-models:/app/models
+      - monero-results:/app/results
+    expose:
+      - "8000"
+    init: true
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      ml-service:
-        condition: service_started
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-xmr_forecast}
-      DB_USERNAME: ${POSTGRES_USER:-xmr}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_SSL_ENABLED: "false"
-      # Sin valor por defecto: si falta, el backend no arranca (R-14).
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio (openssl rand -base64 64)}
-      JWT_ISSUER: ${JWT_ISSUER:-https://localhost:8443}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-xmr-forecast-api}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-https://localhost:8443/api/v1/auth/google/callback}
-      FRONTEND_OAUTH_CALLBACK: ${FRONTEND_OAUTH_CALLBACK:-https://localhost:3000/auth/callback}
-      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
-      MAIL_HOST: ${MAIL_HOST:-localhost}
-      MAIL_PORT: ${MAIL_PORT:-1025}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
-      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
-      MAIL_FROM: ${MAIL_FROM:-}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://localhost:3000}
-      ML_SERVICE_URL: ${ML_SERVICE_URL:-https://ml-service:8443}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost:3000}
-      SERVER_SSL_KEYSTORE: /certs/backend/keystore.p12
-      SERVER_SSL_KEYSTORE_PASSWORD: ${SERVER_SSL_KEYSTORE_PASSWORD:-changeit}
-      SERVER_SSL_KEY_ALIAS: ${SERVER_SSL_KEY_ALIAS:-backend}
-      MAX_FAILED_LOGINS: ${MAX_FAILED_LOGINS:-5}
-      LOCK_DURATION_MINUTES: ${LOCK_DURATION_MINUTES:-15}
-      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-5}
-      RATE_LIMIT_API: ${RATE_LIMIT_API:-300}
-      # Ruta a la CA propia para que el backend valide el certificado del
-      # servicio ML (que usa la CA de desarrollo).
-      JAVA_OPTS: "-XX:MaxRAMPercentage=75 -Djavax.net.ssl.trustStore=/certs/ca/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12"
-    volumes:
-      - ./docker/certs:/certs:ro
-    ports:
-      - "127.0.0.1:8443:8443"
-    networks:
-      - edge
-      - backend
-      - data
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O /dev/null --ca-certificate=/certs/ca/ca.crt https://127.0.0.1:8443/actuator/health || exit 1"]
-      interval: 20s
-      timeout: 8s
-      retries: 10
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
       start_period: 60s
 
-  # ==================================================================
-  # Frontend. Unico servicio expuesto hacia el host.
-  # ==================================================================
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        # Vite incrusta las VITE_* en el bundle EN BUILD: el `environment:` de
-        # abajo NO llega al JS servido. Sin este arg, el bundle apunta al
-        # dominio de ejemplo del Dockerfile y todo falla con DNS/NETWORK.
-        # Es solo el ORIGEN (el codigo anade `/api/v1/...`).
-        VITE_API_BASE_URL: ${FRONTEND_API_BASE_URL:-https://localhost:8443}
-    container_name: xmr-frontend
-    restart: unless-stopped
     depends_on:
-      backend:
+      monero-api:
         condition: service_healthy
-    environment:
-      # Informativo: lo que vale es el build-arg de arriba, no esto.
-      VITE_API_BASE_URL: ${FRONTEND_API_BASE_URL:-https://localhost:8443}
     ports:
-      # El puerto publico es el TLS (8443). El 8080 queda interno, solo para
-      # la sonda /healthz (R-33: nada en claro hacia el host).
-      - "127.0.0.1:3000:8443"
-    volumes:
-      - ./docker/certs:/etc/nginx/tls:ro
-    networks:
-      - edge
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O /dev/null --spider http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 20s
-      timeout: 8s
-      retries: 5
-      start_period: 20s
+      - "127.0.0.1:8081:80"
+    restart: unless-stopped
+
+volumes:
+  monero-data:
+  monero-models:
+  monero-results:

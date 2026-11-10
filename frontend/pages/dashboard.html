@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#09090b">
+    <title>AyLZz Crypto Lab — Monero Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="dashboard-page">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+                <span class="brand-copy">
+                    <strong>AyLZz</strong>
+                    <small>CRYPTO LAB</small>
+                </span>
+            </div>
+
+            <nav class="main-nav" aria-label="Navegación principal">
+                <span class="nav-label">PLATAFORMA</span>
+                <a class="nav-link active" href="#overview">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+                    Resumen
+                </a>
+                <a class="nav-link" href="#market">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V9m5 9V5m6 13v-7m5 7V3M2 21h20"/></svg>
+                    Mercado XMR
+                </a>
+                <a class="nav-link" href="#models">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 4-5 4 3 6-8 2 2M4 4v16h16"/></svg>
+                    Comparar modelos
+                </a>
+                <a class="nav-link" href="#methodology">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7.5 12 12l9-4.5L12 3Zm-7 9v5l7 4 7-4v-5"/></svg>
+                    Metodología
+                </a>
+
+                <span class="nav-label nav-label-secondary">INVESTIGACIÓN</span>
+                <a class="nav-link" href="#results">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10m7 10V4m7 16v-7"/></svg>
+                    Resultados
+                </a>
+                <button class="nav-link nav-button" id="export-report" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+                    Exportar métricas
+                </button>
+            </nav>
+
+            <div class="sidebar-note">
+                <span class="status-dot"></span>
+                <div>
+                    <strong>Dataset validado</strong>
+                    <small><span id="observation-count">Cargando</span> observaciones · XMR-USD</small>
+                </div>
+            </div>
+            <div class="sidebar-footer">PROTOTIPO ACADÉMICO · 2026</div>
+        </aside>
+
+        <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
+        <main class="portal">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Abrir menú">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
+                    <div>
+                        <span class="breadcrumb">AYLZZ / INTELIGENCIA DE MERCADO</span>
+                        <span class="topbar-title">Laboratorio Monero</span>
+                    </div>
+                </div>
+                <div class="topbar-actions">
+                    <div class="market-status" id="market-status" aria-live="polite"><span></span> CONECTANDO</div>
+                    <button class="outline-button" id="refresh-data" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10-1a7 7 0 0 0-12-4L4 9m16 6-3 2a7 7 0 0 1-12-4"/></svg>
+                        Actualizar datos
+                    </button>
+                    <button class="profile-button" id="profile-button" type="button">
+                        <span class="avatar">AY</span>
+                        <span><strong>Investigador</strong><small id="profile-email">demo@aylzz.lab</small></span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+                    </button>
+                    <div class="profile-menu" id="profile-menu">
+                        <button id="logout-button" type="button">Cerrar sesión</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <section class="hero" id="overview">
+                    <div>
+                        <p class="eyebrow"><span></span> SISTEMA EXPERIMENTAL DE PREDICCIÓN</p>
+                        <h1>Decisiones más claras para un mercado <em>impredecible.</em></h1>
+                        <p class="hero-copy">Explora el comportamiento histórico de Monero, compara cinco modelos y analiza escenarios de cierre diario con evidencia reproducible.</p>
+                    </div>
+                    <div class="hero-meta">
+                        <span>HORIZONTE</span>
+                        <strong>1 día</strong>
+                        <i></i>
+                        <span>PAR</span>
+                        <strong>XMR / USD</strong>
+                    </div>
+                </section>
+
+                <section class="ticker-strip" aria-label="Resumen de mercado">
+                    <div class="ticker-featured">
+                        <span class="coin coin-xmr">ɱ</span>
+                        <div><small>MONERO</small><strong>XMR / USD</strong></div>
+                        <div class="ticker-price"><strong id="ticker-price">—</strong><span id="ticker-change">—</span></div>
+                    </div>
+                    <div class="ticker-item"><span>ÚLTIMO MÁXIMO</span><strong id="ticker-high">—</strong></div>
+                    <div class="ticker-item"><span>ÚLTIMO MÍNIMO</span><strong id="ticker-low">—</strong></div>
+                    <div class="ticker-item"><span>OBSERVACIONES</span><strong id="ticker-count">—</strong></div>
+                    <div class="ticker-item"><span>ÚLTIMO DATO</span><strong id="ticker-date">—</strong></div>
+                </section>
+
+                <section class="market-grid" id="market">
+                    <article class="panel chart-panel">
+                        <div class="panel-header chart-header">
+                            <div>
+                                <span class="section-kicker">VISUALIZADOR XMR-USD</span>
+                                <div class="price-line">
+                                    <strong id="chart-price">—</strong>
+                                        <span id="chart-change">—</span>
+                                </div>
+                            </div>
+                            <div class="chart-controls" aria-label="Tipo de gráfico">
+                                <button class="chart-type active" data-chart="candles" type="button">Velas</button>
+                                <button class="chart-type" data-chart="line" type="button">Línea</button>
+                                <button class="chart-type" data-chart="forecast" type="button">Real vs. predicho</button>
+                            </div>
+                        </div>
+                        <div class="chart-toolbar">
+                            <div class="legend" id="chart-legend">
+                                <span><i class="legend-real"></i> Precio</span>
+                                <span class="legend-forecast-item" hidden><i class="legend-forecast"></i> Predicción</span>
+                                <span class="legend-sma-item" hidden><i class="legend-sma"></i> SMA 9</span>
+                                <span class="legend-volume-sma-item" hidden><i class="legend-volume-sma"></i> Vol. SMA 9</span>
+                            </div>
+                            <div class="chart-toolbar-actions">
+                            <div class="range-controls" role="group" aria-label="Rango diario">
+                                <button data-range="1" type="button" aria-pressed="false">1D</button>
+                                <button data-range="5" type="button" aria-pressed="false">5D</button>
+                                <button data-range="30" type="button" aria-pressed="false">1M</button>
+                                <button data-range="90" type="button" aria-pressed="false">3M</button>
+                                <button data-range="180" type="button" aria-pressed="false">6M</button>
+                                <button class="active" data-range="365" type="button" aria-pressed="true">1A</button>
+                            </div>
+                            <div class="indicator-controls" role="group" aria-label="Indicadores técnicos">
+                                <button type="button" data-indicator="sma" aria-pressed="false">SMA 9</button>
+                                <button type="button" data-indicator="volume-sma" aria-pressed="false">Vol. SMA 9</button>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="chart-stage">
+                            <svg id="market-chart" viewBox="0 0 900 390" role="img" aria-label="Gráfico interactivo histórico de Monero"></svg>
+                            <div class="chart-tooltip" id="chart-tooltip"></div>
+                        </div>
+                        <div class="chart-footnote">
+                            <span id="chart-data-status" aria-live="polite">Cargando datos OHLCV del servicio Monero…</span>
+                            <span>OHLC · USD · intervalo diario</span>
+                        </div>
+                    </article>
+
+                    <aside class="panel prediction-panel">
+                        <div class="panel-header">
+                            <div>
+                                <span class="section-kicker">LABORATORIO DE ESCENARIOS</span>
+                                <h2>Próximo cierre</h2>
+                            </div>
+                            <span class="experimental-pill">EXPERIMENTAL</span>
+                        </div>
+                        <label class="field-label" for="model-select">MODELO ACTIVO</label>
+                        <div class="select-wrap">
+                            <select id="model-select">
+                                <option value="lstm">LSTM · retorno</option>
+                                <option value="gru">GRU · retorno</option>
+                                <option value="arima">ARIMA (2,0,1)</option>
+                                <option value="naive">Persistencia</option>
+                                <option value="moving_average">Media móvil 7</option>
+                            </select>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+                        </div>
+
+                        <div class="prediction-value">
+                            <span>ESCENARIO ESTIMADO</span>
+                            <strong id="predicted-price">—</strong>
+                            <small id="predicted-change">Ejecuta un análisis para estimar el próximo cierre</small>
+                        </div>
+
+                        <div class="confidence-track">
+                            <div class="confidence-head"><span>Acierto direccional de prueba</span><strong id="confidence-value">—</strong></div>
+                            <div class="track"><span id="confidence-bar" style="width:0"></span></div>
+                        </div>
+
+                        <div class="prediction-metrics">
+                            <div><span>MAE (prueba)</span><strong id="metric-mae">—</strong></div>
+                            <div><span>MAPE (prueba)</span><strong id="metric-mape">—</strong></div>
+                            <div><span>Ventana</span><strong>30 días</strong></div>
+                            <div><span>Semilla</span><strong id="metric-seeds">—</strong></div>
+                        </div>
+
+                        <button class="primary-button" id="run-prediction" type="button">
+                            <span>Descargar y predecir</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+                        </button>
+                        <p class="prediction-note" id="prediction-status" aria-live="polite">La predicción actualiza el histórico y prepara el modelo seleccionado. No es asesoría financiera.</p>
+                    </aside>
+                </section>
+
+                <section class="stats-grid" id="results">
+                    <article class="stat-card">
+                        <span class="stat-index">01</span>
+                        <div><small>MEJOR MAE</small><strong id="best-mae">— <em>USD</em></strong><p id="best-model">Cargando resultados</p></div>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-index">02</span>
+                        <div><small>PRUEBA CRONOLÓGICA</small><strong>656 <em>días</em></strong><p>20% del histórico total</p></div>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-index">03</span>
+                        <div><small>MEJOR DIRECCIÓN</small><strong id="best-direction">—</strong><p id="best-direction-model">Cargando resultados</p></div>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-index">04</span>
+                        <div><small>MODELOS EVALUADOS</small><strong id="model-count">—</strong><p>Mismo conjunto de prueba</p></div>
+                    </article>
+                </section>
+
+                <section class="panel models-panel" id="models">
+                    <div class="panel-header section-heading">
+                        <div>
+                            <span class="section-kicker">BENCHMARK REPRODUCIBLE</span>
+                            <h2>Comparación de modelos</h2>
+                            <p>Menor error es mejor. Las redes muestran media ± desviación de tres semillas.</p>
+                        </div>
+                        <div class="metric-switch" aria-label="Métrica de comparación">
+                            <button class="active" data-metric="mae" type="button">MAE</button>
+                            <button data-metric="rmse" type="button">RMSE</button>
+                            <button data-metric="mape" type="button">MAPE</button>
+                        </div>
+                    </div>
+                    <div class="model-comparison">
+                        <div class="bar-chart" id="model-bars" aria-label="Comparación gráfica de modelos"></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>RANK</th><th>MODELO</th><th>MAE</th><th>RMSE</th><th>MAPE</th><th>DIRECCIÓN</th></tr>
+                                </thead>
+                                <tbody id="models-table">
+                                    <tr><td colspan="6">Cargando métricas del servicio…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p class="table-note">* La persistencia predice cambio cero; su señal direccional no es interpretable.</p>
+                </section>
+
+                <section class="methodology" id="methodology">
+                    <div class="section-heading standalone">
+                        <div>
+                            <span class="section-kicker">TRAZABILIDAD DEL EXPERIMENTO</span>
+                            <h2>Cómo se construyó el análisis</h2>
+                        </div>
+                        <p>Un protocolo diseñado para evitar fuga de información y comparaciones engañosas.</p>
+                    </div>
+                    <div class="method-grid">
+                        <article>
+                            <span>01</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-5 3 2 5-6"/></svg>
+                            <h3>Datos históricos</h3>
+                            <p>Histórico diario XMR-USD descargado desde Yahoo Finance y representado en velas OHLCV.</p>
+                        </article>
+                        <article>
+                            <span>02</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 3v6m10-6v6M5 11h14v9H5z"/></svg>
+                            <h3>Split temporal</h3>
+                            <p>80% entrenamiento y 20% prueba, respetando el orden cronológico de la serie.</p>
+                        </article>
+                        <article>
+                            <span>03</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4H8zM4 16h6v4H4zm10 0h6v4h-6zM12 8v5M7 16v-3h10v3"/></svg>
+                            <h3>Cinco modelos</h3>
+                            <p>Persistencia, media móvil, ARIMA, LSTM y GRU bajo el mismo conjunto de prueba.</p>
+                        </article>
+                        <article>
+                            <span>04</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h14M7 16l3-4 3 2 4-7"/></svg>
+                            <h3>Evaluación honesta</h3>
+                            <p>MAE, RMSE, MAPE y acierto direccional. Ninguna red superó la línea base.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="research-callout">
+                    <div class="callout-mark">!</div>
+                    <div>
+                        <span class="section-kicker">LECTURA RESPONSABLE</span>
+                        <h2>Predecir no es prometer.</h2>
+                        <p>Las métricas de error no equivalen a rentabilidad. El estudio no contempla costos de transacción, deslizamiento ni eventos externos; su valor está en el protocolo reproducible y la comparación crítica.</p>
+                    </div>
+                    <a href="#models">Revisar resultados <span>→</span></a>
+                </section>
+
+                <footer class="site-footer">
+                    <span>AyLZz Crypto Lab</span>
+                    <p>Portal preliminar de investigación · Monero XMR-USD</p>
+                    <p>Fuente metodológica: informe de implementación y resultados, 2026.</p>
+                </footer>
+            </div>
+        </main>
+    </div>
+    <script src="../js/script.js"></script>
+</body>
+</html>
