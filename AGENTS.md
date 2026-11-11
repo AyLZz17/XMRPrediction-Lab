@@ -20,6 +20,8 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
 - **Documentación fuente:** `backend/services/ml-service/README.md`,
   `backend/services/ml-service/ESTRUCTURA.md` e informes del estudio dentro
   del servicio.
+- La validación Mermaid de CI usa `.github/puppeteer-config.json` para
+  configurar Chromium headless en el runner.
 - Las predicciones son experimentales y no constituyen asesoría financiera.
 
 ## 2. Arquitectura objetivo aprobada

@@ -46,8 +46,9 @@ Run the backup tests from the repository root with
 `python -m unittest discover -s infra\backup -p "test_*.py"`.
 
 For diagrams, `python tools\validate_mermaid.py docs\architecture\diagrams.md`
-uses the pinned Mermaid CLI version in the validator. Compose configuration
-uses `.env.example` only for interpolation:
+uses the pinned Mermaid CLI version in the validator and the Puppeteer
+configuration at `.github/puppeteer-config.json` for headless CI rendering.
+Compose configuration uses `.env.example` only for interpolation:
 
 ```powershell
 docker compose --env-file .env.example config --quiet

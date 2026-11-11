@@ -44,6 +44,8 @@ def main(arguments: list[str]) -> int:
                 f"--package={CLI_PACKAGE}",
                 "--",
                 "mmdc",
+                "-p",
+                ".github/puppeteer-config.json",
                 "-i",
                 str(source),
                 "-o",
