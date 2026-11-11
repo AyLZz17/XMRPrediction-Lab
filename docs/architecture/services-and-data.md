@@ -1,7 +1,7 @@
 # Backend services and data ownership
 
 ```text
-Browser -> Nginx -> Node.js/TypeScript API Gateway
+Browser -> Nginx (Next.js static export) -> Node.js/TypeScript API Gateway
                        |-> Spring Boot security -> PostgreSQL: users
                        |-> market-service -> MongoDB: market_service.candles
                        |                       `-> Monero API (daily OHLCV)
@@ -16,6 +16,10 @@ is bound to host loopback on port `5433` for DBeaver, and MongoDB to host
 loopback on port `27018` for Compass. MongoDB creates distinct least-privilege
 accounts for the market and prediction databases; the administrator account is
 for local database management only.
+
+The Next.js app and its typed API adapters are in `frontend/next-app/` and
+`services-frontend/`. The prior HTML interface remains reachable under
+`/legacy/` while the migration is validated.
 
 ## Gateway throttling
 

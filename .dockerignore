@@ -1,0 +1,13 @@
+.git
+.agents
+Monero
+backend
+docs
+infra
+frontend/.figma
+**/node_modules
+**/.next
+**/out
+.env
+.env.*
+*.log
