@@ -11,7 +11,7 @@ repository architecture, including the Python ML service in
 - Ml-Service API/model tests and encrypted-backup unit tests.
 - Mermaid rendering, Docker Compose configuration validation, and image builds
   for the complete stack and optional backup profile.
-- A Trivy filesystem scan for high and critical vulnerabilities and
+- A Trivy v0.36.0 filesystem scan for high and critical vulnerabilities and
   misconfiguration.
 
 No job deploys to an environment or sends a real backup email. Deployment,

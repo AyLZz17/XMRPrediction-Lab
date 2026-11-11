@@ -22,6 +22,8 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
   del servicio.
 - La validación Mermaid de CI usa `.github/puppeteer-config.json` para
   configurar Chromium headless en el runner.
+- Mantener Trivy en CI en una versión cuya acción `setup-trivy` dependiente
+  apunte a una referencia disponible.
 - Las predicciones son experimentales y no constituyen asesoría financiera.
 
 ## 2. Arquitectura objetivo aprobada
