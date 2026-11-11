@@ -5,6 +5,9 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       TF_CPP_MIN_LOG_LEVEL: "2"
+      DAILY_UPDATE_UTC: "${DAILY_UPDATE_UTC:-03:15}"
+      WEEKLY_RETRAIN_UTC: "${WEEKLY_RETRAIN_UTC:-04:00}"
+      WEEKLY_RETRAIN_DAY_UTC: "${WEEKLY_RETRAIN_DAY_UTC:-6}"
     volumes:
       - monero-data:/app/data
       - monero-models:/app/models
@@ -24,6 +27,24 @@ services:
       retries: 3
       start_period: 60s
 
+  monero-scheduler:
+    image: cryptostat-project-monero-api
+    command: ["python", "-m", "src.scheduler"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DAILY_UPDATE_UTC: "${DAILY_UPDATE_UTC:-03:15}"
+      WEEKLY_RETRAIN_UTC: "${WEEKLY_RETRAIN_UTC:-04:00}"
+      WEEKLY_RETRAIN_DAY_UTC: "${WEEKLY_RETRAIN_DAY_UTC:-6}"
+    volumes:
+      - monero-data:/app/data
+      - monero-models:/app/models
+      - monero-results:/app/results
+    depends_on:
+      monero-api:
+        condition: service_healthy
+    init: true
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -31,7 +52,7 @@ services:
       monero-api:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8081:80"
+      - "0.0.0.0:8081:80"
     restart: unless-stopped
 
 volumes:

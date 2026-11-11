@@ -186,7 +186,8 @@ svg { display: block; }
 .ticker-item:last-child { border-right: 0; }
 .ticker-item strong { font: 700 11px/1 "Space Mono", monospace; }
 .panel { background: var(--surface); border: 1px solid var(--line); }
-.market-grid { display: grid; grid-template-columns: minmax(0, 2.25fr) minmax(280px, .75fr); gap: 18px; }
+.market-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
+.prediction-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, .8fr); gap: 18px; margin-top: 18px; }
 .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 22px 24px; border-bottom: 1px solid var(--line-soft); }
 .panel-header h2 { margin: 8px 0 0; font-size: 20px; letter-spacing: -.5px; }
 .price-line { display: flex; gap: 12px; align-items: baseline; margin-top: 9px; }
@@ -227,7 +228,7 @@ svg { display: block; }
 .chart-sma { fill: none; stroke: #e6b84f; stroke-width: 1.8; }
 .chart-volume-sma { fill: none; stroke: #9c98a0; stroke-width: 1.6; }
 .chart-stage { position: relative; padding: 0 12px; min-height: 390px; }
-#market-chart { width: 100%; height: 390px; overflow: visible; }
+#market-chart, #prediction-chart { width: 100%; height: 390px; overflow: visible; }
 .chart-grid-line { stroke: #242429; stroke-width: 1; stroke-dasharray: 3 5; }
 .chart-axis-label { fill: #5e5a5f; font: 9px "Space Mono", monospace; }
 .candle-wick { stroke-width: 1; }
@@ -237,6 +238,12 @@ svg { display: block; }
 .chart-line { fill: none; stroke: var(--red-bright); stroke-width: 2.2; }
 .forecast-line { fill: none; stroke: #e9e5e6; stroke-width: 1.3; stroke-dasharray: 5 4; opacity: .8; }
 .forecast-point { fill: var(--red-bright); stroke: #fff; stroke-width: 1.5; }
+.prediction-history-line { fill: none; stroke: #e9e5e6; stroke-width: 2; }
+.prediction-current-point { fill: #e9e5e6; stroke: #111; stroke-width: 1.5; }
+.prediction-point-label { fill: var(--red-bright); font: 700 10px "Space Mono", monospace; }
+.prediction-chart-subtitle { margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+.prediction-chart-toolbar { justify-content: flex-start; }
+.prediction-chart-stage { min-height: 390px; }
 .volume-up { fill: rgba(230,225,227,.14); }
 .volume-down { fill: rgba(239,41,41,.25); }
 .chart-hit-area { cursor: crosshair; }
@@ -287,6 +294,7 @@ svg { display: block; }
 .models-panel { scroll-margin-top: 88px; }
 .section-heading h2 { margin: 8px 0 7px; font-size: 24px; }
 .section-heading p { margin: 0; color: var(--muted); font-size: 11px; }
+.metrics-updated-at { display: block; margin-top: 8px; color: var(--muted-2); font: 9px/1.5 "Space Mono", monospace; }
 .metric-switch button { min-width: 48px; height: 29px; }
 .model-comparison { display: grid; grid-template-columns: .78fr 1.22fr; gap: 30px; padding: 25px 24px 18px; }
 .bar-chart { display: grid; align-content: center; gap: 17px; padding-right: 10px; }
@@ -386,6 +394,7 @@ tr.winner td:first-child, tr.winner td:nth-child(3) { color: var(--red-bright); 
     .ticker-strip { grid-template-columns: 1.4fr repeat(2, 1fr); }
     .ticker-item:nth-last-child(-n+2) { display: none; }
     .market-grid { grid-template-columns: 1fr; }
+    .prediction-grid { grid-template-columns: 1fr; }
     .prediction-panel { min-height: 0; }
     .prediction-panel > .primary-button { width: calc(100% - 44px); margin-top: 0; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -422,7 +431,7 @@ tr.winner td:first-child, tr.winner td:nth-child(3) { color: var(--red-bright); 
     .chart-header, .section-heading.standalone, .section-heading { flex-direction: column; align-items: flex-start; }
     .chart-controls { width: 100%; }
     .chart-controls button { flex: 1; }
-    .chart-stage, #market-chart { min-height: 300px; height: 300px; }
+    .chart-stage, #market-chart, #prediction-chart { min-height: 300px; height: 300px; }
     .chart-toolbar { align-items: flex-start; flex-direction: column; padding: 8px 14px; }
     .chart-toolbar-actions { width: 100%; justify-content: space-between; gap: 6px; }
     .range-controls { flex-wrap: wrap; }

@@ -33,6 +33,10 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V9m5 9V5m6 13v-7m5 7V3M2 21h20"/></svg>
                     Mercado XMR
                 </a>
+                <a class="nav-link" href="#prediction">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18h16M6 15l4-5 3 3 5-7"/><circle cx="18" cy="6" r="2"/></svg>
+                    Predicción
+                </a>
                 <a class="nav-link" href="#models">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 4-5 4 3 6-8 2 2M4 4v16h16"/></svg>
                     Comparar modelos
@@ -121,30 +125,27 @@
                     <div class="ticker-item"><span>ÚLTIMO DATO</span><strong id="ticker-date">—</strong></div>
                 </section>
 
-                <section class="market-grid" id="market">
-                    <article class="panel chart-panel">
-                        <div class="panel-header chart-header">
-                            <div>
-                                <span class="section-kicker">VISUALIZADOR XMR-USD</span>
-                                <div class="price-line">
-                                    <strong id="chart-price">—</strong>
-                                        <span id="chart-change">—</span>
-                                </div>
-                            </div>
-                            <div class="chart-controls" aria-label="Tipo de gráfico">
-                                <button class="chart-type active" data-chart="candles" type="button">Velas</button>
-                                <button class="chart-type" data-chart="line" type="button">Línea</button>
-                                <button class="chart-type" data-chart="forecast" type="button">Real vs. predicho</button>
+                <section class="panel chart-panel market-panel" id="market">
+                    <div class="panel-header chart-header">
+                        <div>
+                            <span class="section-kicker">MERCADO XMR · HISTÓRICO OHLCV REAL</span>
+                            <div class="price-line">
+                                <strong id="chart-price">—</strong>
+                                <span id="chart-change">—</span>
                             </div>
                         </div>
-                        <div class="chart-toolbar">
-                            <div class="legend" id="chart-legend">
-                                <span><i class="legend-real"></i> Precio</span>
-                                <span class="legend-forecast-item" hidden><i class="legend-forecast"></i> Predicción</span>
-                                <span class="legend-sma-item" hidden><i class="legend-sma"></i> SMA 9</span>
-                                <span class="legend-volume-sma-item" hidden><i class="legend-volume-sma"></i> Vol. SMA 9</span>
-                            </div>
-                            <div class="chart-toolbar-actions">
+                        <div class="chart-controls" aria-label="Tipo de gráfico de mercado">
+                            <button class="chart-type active" data-chart="candles" type="button">Velas</button>
+                            <button class="chart-type" data-chart="line" type="button">Línea</button>
+                        </div>
+                    </div>
+                    <div class="chart-toolbar">
+                        <div class="legend" id="chart-legend">
+                            <span><i class="legend-real"></i> Precio</span>
+                            <span class="legend-sma-item" hidden><i class="legend-sma"></i> SMA 9</span>
+                            <span class="legend-volume-sma-item" hidden><i class="legend-volume-sma"></i> Vol. SMA 9</span>
+                        </div>
+                        <div class="chart-toolbar-actions">
                             <div class="range-controls" role="group" aria-label="Rango diario">
                                 <button data-range="1" type="button" aria-pressed="false">1D</button>
                                 <button data-range="5" type="button" aria-pressed="false">5D</button>
@@ -157,15 +158,40 @@
                                 <button type="button" data-indicator="sma" aria-pressed="false">SMA 9</button>
                                 <button type="button" data-indicator="volume-sma" aria-pressed="false">Vol. SMA 9</button>
                             </div>
+                        </div>
+                    </div>
+                    <div class="chart-stage">
+                        <svg id="market-chart" viewBox="0 0 900 390" role="img" aria-label="Gráfico OHLCV de mercado de Monero"></svg>
+                        <div class="chart-tooltip" id="market-chart-tooltip"></div>
+                    </div>
+                    <div class="chart-footnote">
+                        <span id="chart-data-status" aria-live="polite">Cargando datos OHLCV del servicio Monero…</span>
+                        <span>OHLC · USD · intervalo diario</span>
+                    </div>
+                </section>
+
+                <section class="prediction-grid" id="prediction">
+                    <article class="panel prediction-chart-panel">
+                        <div class="panel-header">
+                            <div>
+                                <span class="section-kicker">PREDICCIÓN DEL MODELO</span>
+                                <h2>Histórico y próximo cierre</h2>
+                                <p class="prediction-chart-subtitle" id="prediction-chart-subtitle">Los cierres reales se obtienen del servicio Monero.</p>
+                            </div>
+                            <span class="experimental-pill">EXPERIMENTAL</span>
+                        </div>
+                        <div class="chart-toolbar prediction-chart-toolbar">
+                            <div class="legend">
+                                <span><i class="legend-real"></i> Cierre observado</span>
+                                <span><i class="legend-forecast"></i> Estimación</span>
                             </div>
                         </div>
-                        <div class="chart-stage">
-                            <svg id="market-chart" viewBox="0 0 900 390" role="img" aria-label="Gráfico interactivo histórico de Monero"></svg>
-                            <div class="chart-tooltip" id="chart-tooltip"></div>
+                        <div class="chart-stage prediction-chart-stage">
+                            <svg id="prediction-chart" viewBox="0 0 900 390" role="img" aria-label="Gráfico independiente de cierres reales y próximo cierre estimado"></svg>
                         </div>
                         <div class="chart-footnote">
-                            <span id="chart-data-status" aria-live="polite">Cargando datos OHLCV del servicio Monero…</span>
-                            <span>OHLC · USD · intervalo diario</span>
+                            <span id="prediction-chart-status" aria-live="polite">Ejecuta una predicción para mostrar el escenario del modelo.</span>
+                            <span>Histórico diario · USD</span>
                         </div>
                     </article>
 
@@ -175,7 +201,6 @@
                                 <span class="section-kicker">LABORATORIO DE ESCENARIOS</span>
                                 <h2>Próximo cierre</h2>
                             </div>
-                            <span class="experimental-pill">EXPERIMENTAL</span>
                         </div>
                         <label class="field-label" for="model-select">MODELO ACTIVO</label>
                         <div class="select-wrap">
@@ -208,10 +233,10 @@
                         </div>
 
                         <button class="primary-button" id="run-prediction" type="button">
-                            <span>Descargar y predecir</span>
+                            <span>Predecir cierre</span>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
                         </button>
-                        <p class="prediction-note" id="prediction-status" aria-live="polite">La predicción actualiza el histórico y prepara el modelo seleccionado. No es asesoría financiera.</p>
+                        <p class="prediction-note" id="prediction-status" aria-live="polite">Usa una instantánea independiente del último histórico guardado. Actualiza el mercado por separado.</p>
                     </aside>
                 </section>
 
@@ -240,6 +265,7 @@
                             <span class="section-kicker">BENCHMARK REPRODUCIBLE</span>
                             <h2>Comparación de modelos</h2>
                             <p>Menor error es mejor. Las redes muestran media ± desviación de tres semillas.</p>
+                            <span class="metrics-updated-at" id="metrics-updated-at">Fecha del benchmark no disponible</span>
                         </div>
                         <div class="metric-switch" aria-label="Métrica de comparación">
                             <button class="active" data-metric="mae" type="button">MAE</button>

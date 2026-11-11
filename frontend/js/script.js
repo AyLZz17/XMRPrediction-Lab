@@ -22,6 +22,7 @@ const session = getSession();
 if (!session) window.location.href = "/login/";
 
 let marketRows = [];
+let predictionMarketRows = [];
 let marketTotalCount = 0;
 let modelData = {};
 let chartMode = "candles";
@@ -31,8 +32,8 @@ let activeModel = document.getElementById("model-select")?.value || "lstm";
 let livePrediction = null;
 
 const svg = document.getElementById("market-chart");
-const tooltip = document.getElementById("chart-tooltip");
-const legendForecast = document.querySelector(".legend-forecast-item");
+const predictionSvg = document.getElementById("prediction-chart");
+const tooltip = document.getElementById("market-chart-tooltip");
 const legendSma = document.querySelector(".legend-sma-item");
 const legendVolumeSma = document.querySelector(".legend-volume-sma-item");
 
@@ -123,6 +124,7 @@ function applyMarket(market) {
     document.getElementById("chart-data-status").textContent = `XMR-USD · ${marketRows.length} velas recientes · actualizado ${new Date(market.updated_at).toLocaleString("es-CO")}`;
     setServiceStatus("Servicio Monero activo", "online");
     renderChart();
+    renderPredictionChart();
 }
 
 function renderChart() {
@@ -137,15 +139,12 @@ function renderChart() {
 
     const firstDataIndex = Math.max(0, marketRows.length - chartRange);
     const data = marketRows.slice(firstDataIndex);
-    const forecastVisible = chartMode === "forecast" && livePrediction;
-    const forecastPrice = forecastVisible ? livePrediction.precio_predicho : null;
     const width = 900;
     const height = 390;
     const pad = { top: 16, right: 68, bottom: 52, left: 18 };
     const plotH = 275;
-    const plotCount = data.length + (forecastVisible ? 1 : 0);
+    const plotCount = data.length;
     const values = data.flatMap(item => [item.low, item.high]);
-    if (forecastVisible) values.push(forecastPrice);
     const min = Math.min(...values) * 0.97;
     const max = Math.max(...values) * 1.03;
     const xStep = (width - pad.left - pad.right) / Math.max(1, plotCount);
@@ -208,20 +207,6 @@ function renderChart() {
         svg.append(svgNode("path", { d: area, class: "chart-area" }));
         svg.append(svgNode("path", { d: path, class: "chart-line" }));
 
-        if (forecastVisible) {
-            svg.append(svgNode("path", {
-                d: `M ${x(data.length - 1)} ${y(data[data.length - 1].close)} L ${x(data.length)} ${y(forecastPrice)}`,
-                class: "forecast-line"
-            }));
-            svg.append(svgNode("circle", {
-                cx: x(data.length), cy: y(forecastPrice), r: 4, class: "forecast-point"
-            }));
-            const forecastDate = svgNode("text", {
-                x: x(data.length), y: 330, class: "chart-axis-label", "text-anchor": "end"
-            });
-            forecastDate.textContent = formatDate(livePrediction.fecha_prediccion);
-            svg.append(forecastDate);
-        }
     }
 
     const volumeBase = 378;
@@ -300,11 +285,90 @@ function renderChart() {
         tooltip.style.top = "0";
     });
     svg.append(hitArea);
-    legendForecast.hidden = !forecastVisible;
     legendSma.hidden = !chartIndicators.sma;
     legendVolumeSma.hidden = !chartIndicators["volume-sma"];
-    if (forecastVisible) {
-        legendForecast.lastChild.textContent = ` ${MODEL_NAMES[livePrediction.modelo] || livePrediction.modelo}`;
+}
+
+function renderPredictionChart() {
+    if (!predictionSvg) return;
+    predictionSvg.replaceChildren();
+    const status = document.getElementById("prediction-chart-status");
+    const subtitle = document.getElementById("prediction-chart-subtitle");
+    if (!marketRows.length) return;
+
+    const predictionRows = livePrediction && predictionMarketRows.length ? predictionMarketRows : marketRows;
+    const data = predictionRows.slice(-90);
+    const hasForecast = livePrediction && Number.isFinite(Number(livePrediction.precio_predicho));
+    const values = data.map(item => item.close);
+    if (hasForecast) values.push(Number(livePrediction.precio_predicho));
+
+    const width = 900;
+    const height = 390;
+    const pad = { top: 20, right: 68, bottom: 56, left: 18 };
+    const plotH = 270;
+    const count = data.length + (hasForecast ? 1 : 0);
+    const min = Math.min(...values) * 0.97;
+    const max = Math.max(...values) * 1.03;
+    const xStep = (width - pad.left - pad.right) / Math.max(1, count - 1);
+    const x = index => pad.left + index * xStep;
+    const y = value => pad.top + (max - value) / (max - min || 1) * plotH;
+
+    for (let index = 0; index < 5; index++) {
+        const gridY = pad.top + (plotH / 4) * index;
+        const value = max - ((max - min) / 4) * index;
+        predictionSvg.append(svgNode("line", {
+            x1: pad.left, y1: gridY, x2: width - pad.right, y2: gridY, class: "chart-grid-line"
+        }));
+        const label = svgNode("text", {
+            x: width - 8, y: gridY + 4, class: "chart-axis-label", "text-anchor": "end"
+        });
+        label.textContent = `$${Math.round(value).toLocaleString("es-CO")}`;
+        predictionSvg.append(label);
+    }
+
+    const actualPath = data.map((item, index) => `${index ? "L" : "M"} ${x(index)} ${y(item.close)}`).join(" ");
+    predictionSvg.append(svgNode("path", { d: actualPath, class: "prediction-history-line" }));
+    predictionSvg.append(svgNode("circle", {
+        cx: x(data.length - 1), cy: y(data[data.length - 1].close), r: 3, class: "prediction-current-point"
+    }));
+
+    const dateIndexes = hasForecast
+        ? [0, Math.floor((data.length - 1) / 2)]
+        : [...new Set([0, Math.floor((data.length - 1) / 2), data.length - 1])];
+    dateIndexes.forEach((index, labelIndex) => {
+        const label = svgNode("text", {
+            x: x(index), y: 330, class: "chart-axis-label",
+            "text-anchor": labelIndex === 0 ? "start" : labelIndex === dateIndexes.length - 1 ? "end" : "middle"
+        });
+        label.textContent = formatDate(data[index].date);
+        predictionSvg.append(label);
+    });
+
+    if (hasForecast) {
+        const forecastX = x(data.length);
+        const forecastY = y(Number(livePrediction.precio_predicho));
+        predictionSvg.append(svgNode("path", {
+            d: `M ${x(data.length - 1)} ${y(data[data.length - 1].close)} L ${forecastX} ${forecastY}`,
+            class: "forecast-line"
+        }));
+        predictionSvg.append(svgNode("circle", {
+            cx: forecastX, cy: forecastY, r: 5, class: "forecast-point"
+        }));
+        const forecastDate = svgNode("text", {
+            x: forecastX - 7, y: forecastY - 12, class: "prediction-point-label", "text-anchor": "end"
+        });
+        forecastDate.textContent = formatMoney(livePrediction.precio_predicho);
+        predictionSvg.append(forecastDate);
+        const dateLabel = svgNode("text", {
+            x: forecastX, y: 330, class: "chart-axis-label", "text-anchor": "end"
+        });
+        dateLabel.textContent = formatDate(livePrediction.fecha_prediccion);
+        predictionSvg.append(dateLabel);
+        status.textContent = `${MODEL_NAMES[livePrediction.modelo] || livePrediction.modelo} · estimación para ${formatDate(livePrediction.fecha_prediccion)}`;
+        subtitle.textContent = `Cierre real ${formatMoney(livePrediction.precio_actual)} · estimación ${formatMoney(livePrediction.precio_predicho)}`;
+    } else {
+        status.textContent = `Últimos ${data.length} cierres reales · ejecuta una predicción para añadir el próximo cierre.`;
+        subtitle.textContent = "Los cierres reales se obtienen del servicio Monero.";
     }
 }
 
@@ -349,10 +413,14 @@ function renderModelTable(models) {
     document.getElementById("model-count").textContent = String(models.length);
 }
 
-function applyModels(models) {
+function applyModels(models, updatedAt) {
     modelData = Object.fromEntries(models.map(model => [model.id, model]));
     renderModelTable(models);
     renderModelBars();
+    const updatedLabel = document.getElementById("metrics-updated-at");
+    updatedLabel.textContent = updatedAt
+        ? `Benchmark actualizado ${new Date(updatedAt).toLocaleString("es-CO", { timeZone: "UTC" })} UTC`
+        : "Benchmark pendiente de generar";
 }
 
 function updateSelectedModel(modelKey) {
@@ -366,8 +434,9 @@ function updateSelectedModel(modelKey) {
     document.getElementById("confidence-bar").style.width = `${Math.max(0, Math.min(100, model.direction))}%`;
 }
 
-function showPrediction(prediction) {
+function showPrediction(prediction, market) {
     livePrediction = prediction;
+    predictionMarketRows = market?.rows?.length ? market.rows.slice() : marketRows.slice();
     document.getElementById("predicted-price").textContent = formatMoney(prediction.precio_predicho);
     document.getElementById("predicted-change").textContent =
         `${prediction.cambio_pct >= 0 ? "+" : ""}${formatNumber(prediction.cambio_pct)}% · ${formatDate(prediction.fecha_prediccion)}`;
@@ -380,11 +449,7 @@ function showPrediction(prediction) {
         : "—";
     document.getElementById("confidence-bar").style.width = `${Math.max(0, Math.min(100, metrics.acierto_direccion || 0))}%`;
     setPredictionStatus(`Último dato ${formatDate(prediction.fecha_ultimo_dato)} · escenario ${prediction.direccion} para ${formatDate(prediction.fecha_prediccion)}.`);
-    chartMode = "forecast";
-    document.querySelectorAll(".chart-type").forEach(button => {
-        button.classList.toggle("active", button.dataset.chart === chartMode);
-    });
-    renderChart();
+    renderPredictionChart();
 }
 
 document.querySelectorAll(".chart-type").forEach(button => {
@@ -456,15 +521,14 @@ document.getElementById("run-prediction")?.addEventListener("click", async event
             method: "POST",
             body: JSON.stringify({ model: activeModel })
         });
-        applyMarket(result.market);
-        showPrediction(result.prediction);
+        showPrediction(result.prediction, result.market);
     } catch (error) {
         setServiceStatus("error de servicio", "error");
         setPredictionStatus(error.message, true);
     } finally {
         button.disabled = false;
         button.classList.remove("loading");
-        label.textContent = "Descargar y predecir";
+        label.textContent = "Predecir cierre";
     }
 });
 
@@ -522,7 +586,7 @@ async function loadDashboard() {
     }
     try {
         const result = await requestJson("/api/v1/models");
-        applyModels(result.models);
+        applyModels(result.models, result.updated_at);
         updateSelectedModel(activeModel);
     } catch (error) {
         document.getElementById("models-table").innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
@@ -530,4 +594,5 @@ async function loadDashboard() {
 }
 
 renderChart();
+renderPredictionChart();
 loadDashboard();
