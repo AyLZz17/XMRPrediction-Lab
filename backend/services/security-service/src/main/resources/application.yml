@@ -1,0 +1,25 @@
+server:
+  port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: security-service
+  datasource:
+    url: ${USERS_DB_URL:jdbc:postgresql://localhost:5433/aylzz_users}
+    username: ${USERS_DB_USER:aylzz_app}
+    password: ${USERS_DB_PASSWORD:}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:aylzz-crypto-lab}
+    secret: ${JWT_SECRET:}
+    ttl-seconds: ${JWT_TTL_SECONDS:900}
+  cookie:
+    secure: ${COOKIE_SECURE:false}

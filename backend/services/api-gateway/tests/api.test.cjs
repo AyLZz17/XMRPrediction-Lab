@@ -5,6 +5,8 @@ const { createApp } = require("../dist/app");
 
 let upstream;
 let upstreamUrl;
+let securityService;
+let securityServiceUrl;
 let gateway;
 let gatewayUrl;
 
@@ -39,7 +41,27 @@ before(async () => {
     await new Promise(resolve => upstream.listen(0, "127.0.0.1", resolve));
     upstreamUrl = `http://127.0.0.1:${upstream.address().port}`;
 
-    gateway = createApp(upstreamUrl).listen(0, "127.0.0.1");
+    securityService = http.createServer((request, response) => {
+        if (request.url === "/api/auth/health") {
+            response.writeHead(200, { "content-type": "application/json" });
+            response.end(JSON.stringify({ status: "ok" }));
+            return;
+        }
+        if (request.url === "/api/auth/login") {
+            response.writeHead(200, {
+                "content-type": "application/json",
+                "set-cookie": "aylzz_session=test-token; HttpOnly; Path=/api"
+            });
+            response.end(JSON.stringify({ authenticated: true }));
+            return;
+        }
+        response.writeHead(404);
+        response.end();
+    });
+    await new Promise(resolve => securityService.listen(0, "127.0.0.1", resolve));
+    securityServiceUrl = `http://127.0.0.1:${securityService.address().port}`;
+
+    gateway = createApp(upstreamUrl, securityServiceUrl).listen(0, "127.0.0.1");
     await new Promise(resolve => gateway.once("listening", resolve));
     gatewayUrl = `http://127.0.0.1:${gateway.address().port}`;
 });
@@ -47,7 +69,8 @@ before(async () => {
 after(async () => {
     await Promise.all([
         new Promise((resolve, reject) => gateway.close(error => error ? reject(error) : resolve())),
-        new Promise((resolve, reject) => upstream.close(error => error ? reject(error) : resolve()))
+        new Promise((resolve, reject) => upstream.close(error => error ? reject(error) : resolve())),
+        new Promise((resolve, reject) => securityService.close(error => error ? reject(error) : resolve()))
     ]);
 });
 
@@ -80,4 +103,11 @@ test("proxies request bodies and preserves upstream response status", async () =
         accepted: true,
         body: { model: "naive", seed: 0 }
     });
+});
+
+test("routes authentication to the security service and preserves cookies", async () => {
+    const response = await fetch(`${gatewayUrl}/api/auth/login`, { method: "POST" });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("set-cookie"), "aylzz_session=test-token; HttpOnly; Path=/api");
+    assert.deepEqual(await response.json(), { authenticated: true });
 });
