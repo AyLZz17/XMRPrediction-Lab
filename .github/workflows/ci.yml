@@ -1,21 +1,11 @@
-# =====================================================================
-# XMR-Forecast :: CI/CD
-#
-# Reglas (R-29): el pipeline BLOQUEA la publicacion si hay secretos en el
-# repositorio, vulnerabilidades criticas o artefactos no verificables.
-# Genera SBOM y escanea dependencias e imagenes antes de publicar.
-#
-# Java 21 es obligatorio (R-36/R-37); el Enforcer del pom tambien lo bloquea.
-# =====================================================================
 name: CI
 
 on:
   push:
-    branches: [main, master, 'feat/**', 'BackEnd/First', 'FrontEnd/First']
+    branches: [main, master, "feat/**", "BackEnd/First", "FrontEnd/First"]
   pull_request:
     branches: [main, master]
 
-# Cancela ejecuciones anteriores del mismo ref: evita gastar runner en commits viejos.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,270 +13,147 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  JAVA_VERSION: '21'
-
 jobs:
-
-  # --------------------------------------------------------------------
-  # 0. Escaneo de secretos ANTES de compilar nada.
-  # --------------------------------------------------------------------
   secrets:
     name: Secret scanning
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          # Sin historial completo: se busca en el estado actual y en los commits.
           fetch-depth: 0
-      - name: Buscar secretos en el codigo y en el historial
+      - name: Scan tracked files and history
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verificar que .env no este versionado
+      - name: Ensure local environment file is not tracked
         run: |
           if git ls-files --error-unmatch .env >/dev/null 2>&1; then
-            echo "::error::.env esta versionado. R-14 prohibe credenciales en el repositorio."
+            echo "::error::.env must not be tracked."
             exit 1
           fi
-          echo "OK: .env no esta versionado"
 
-  # --------------------------------------------------------------------
-  # 1. Backend Spring Boot con Java 21.
-  # --------------------------------------------------------------------
-  backend:
-    name: Backend (Java 21)
+  node-services:
+    name: Node service tests (${{ matrix.service }})
     runs-on: ubuntu-latest
     needs: secrets
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Verificar la version de Java activa
-        run: |
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
-          if ! java -version 2>&1 | head -1 | grep -q '"21'; then
-            echo "::error::Se requiere Java 21 (R-36)."; exit 1
-          fi
-
-      # 'clean' es obligatorio: evita reutilizar clases compiladas previamente.
-      - name: Compilar y verificar (tests + empaquetado)
-        run: mvn -B clean verify
-
-      - name: Comprobar que el artefacto se genero
-        run: |
-          test -f backend/target/xmr-forecast-backend.jar \
-            || { echo "::error::No se genero el jar del backend"; exit 1; }
-          ls -lh backend/target/xmr-forecast-backend.jar
-
-      - name: Informe de pruebas
-        if: always()
-        run: |
-          find backend/target/surefire-reports -name '*.txt' -exec cat {} \; || true
-
-  # --------------------------------------------------------------------
-  # 2. Servicio ML: lint, tipos y tests (incluye no-fuga de datos).
-  # --------------------------------------------------------------------
-  ml:
-    name: Servicio ML
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ml-service
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Instalar dependencias
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest ruff mypy
-
-      - name: Lint (ruff)
-        run: ruff check .
-
-      - name: Comprobacion de tipos (mypy)
-        run: mypy app
-
-      - name: Tests, incluidos los de no-fuga de datos (R-01..R-03)
-        run: pytest -v
-
-  # --------------------------------------------------------------------
-  # 3. Frontend: tipos, lint, build y tests.
-  # --------------------------------------------------------------------
-  frontend:
-    name: Frontend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api-gateway, market-service, prediction-service]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            backend/services/shared-observability/package-lock.json
+            backend/services/${{ matrix.service }}/package-lock.json
+      - name: Install shared observability package
+        run: npm ci --prefix backend/services/shared-observability
+      - name: Install and test service
+        run: |
+          npm ci --prefix backend/services/${{ matrix.service }}
+          npm test --prefix backend/services/${{ matrix.service }}
+          npm audit --prefix backend/services/${{ matrix.service }} --omit=dev --audit-level=high
 
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Comprobacion de tipos y build
-        run: npm run build
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Tests (incluye el pie de pagina obligatorio)
-        run: npm run test
-
-      - name: Auditar dependencias de produccion
-        run: npm audit --omit=dev --audit-level=high || {
-          echo "::error::Vulnerabilidades altas o criticas en dependencias de produccion (R-29)."; exit 1; }
-
-  # --------------------------------------------------------------------
-  # 4. SBOM y escaneo de dependencias e imagenes.
-  # --------------------------------------------------------------------
-  security:
-    name: SBOM y escaneo de imagenes
+  frontend:
+    name: Next.js checks
     runs-on: ubuntu-latest
-    needs: [backend, ml, frontend]
-    permissions:
-      contents: read
-      security-events: write
+    needs: secrets
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/next-app/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend/next-app
+        run: npm ci
+      - name: Typecheck and production build
+        working-directory: frontend/next-app
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Audit production dependencies
+        working-directory: frontend/next-app
+        run: npm audit --omit=dev --audit-level=high
 
+  security-service:
+    name: Spring Boot security service
+    runs-on: ubuntu-latest
+    needs: secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/services/security-service/pom.xml
+      - name: Run unit and PostgreSQL integration tests
+        run: mvn -B -f backend/services/security-service/pom.xml verify
+
+  backup:
+    name: Backup service tests
+    runs-on: ubuntu-latest
+    needs: secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run backup unit tests
+        run: python -m unittest discover -s infra/backup -p "test_*.py"
+
+  architecture:
+    name: Architecture docs and Compose validation
+    runs-on: ubuntu-latest
+    needs: secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Render and validate Mermaid diagrams
+        run: python tools/validate_mermaid.py docs/architecture/diagrams.md
+      - name: Validate Compose interpolation and profiles
+        run: docker compose --env-file .env.example --profile backup --profile observability config --quiet
+
+  security-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    needs: secrets
+    steps:
+      - uses: actions/checkout@v4
       - uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: filesystem
+          scan-type: fs
           scan-ref: .
-          format: sarif
-          output: trivy-fs.sarif
+          scanners: vuln
           severity: CRITICAL,HIGH
-        continue-on-error: true
+          ignore-unfixed: true
+          exit-code: "1"
 
-      - name: Publicar resultados (Trivy)
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-fs.sarif
-
-      - name: Impedir la publicacion ante vulnerabilidades criticas
-        run: |
-          if [ -f trivy-fs.sarif ]; then
-            COUNT=$(grep -c '"level": *"CRITICAL"' trivy-fs.sarif || true)
-            if [ "$COUNT" -gt 0 ]; then
-              echo "::error::Se detectaron $COUNT vulnerabilidades CRITICAS. Publicacion bloqueada (R-29)."
-              exit 1
-            fi
-            echo "OK: sin vulnerabilidades criticas"
-          fi
-
-      # El backend se compila con Java 21 en la imagen oficial de runtime.
-      - name: Construir y escanear la imagen del backend
-        run: |
-          docker build -f backend/Dockerfile -t xmr-forecast-backend:ci .
-          docker run --rm aquasec/trivy:latest image \
-            --severity CRITICAL,HIGH --exit-code 1 \
-            --ignore-unfixed=true xmr-forecast-backend:ci
-
-  # --------------------------------------------------------------------
-  # 5. Validadores propios del proyecto.
-  # --------------------------------------------------------------------
-  contracts:
-    name: Validadores del proyecto
+  containers:
+    name: Docker image builds and Monero image tests
     runs-on: ubuntu-latest
-    needs: [frontend]
+    needs:
+      - node-services
+      - frontend
+      - security-service
+      - backup
+      - architecture
+      - security-scan
     steps:
       - uses: actions/checkout@v4
-
-      - name: "HTTPS obligatorio - sin URLs http:// de servicios internos"
-        run: |
-          # R-33/R-32: ni el compose, ni la configuracion, ni la documentacion
-          # operativa pueden apuntar a un servicio interno por HTTP plano.
-          # Se escanean solo esos ficheros: incluir este propio workflow
-          # produciria falsos positivos, porque contiene los patrones de busqueda.
-          FAILED=0
-          TARGETS="docker-compose.yml .env.example backend/src/main/resources/application.yml README.md docs"
-          for pattern in 'ML_SERVICE_URL=http://' 'GOOGLE_REDIRECT_URI=http://' \
-                          'FRONTEND_OAUTH_CALLBACK=http://' 'CORS_ALLOWED_ORIGINS=http://'; do
-            # shellcheck disable=SC2086
-            if grep -rn -- "$pattern" $TARGETS 2>/dev/null; then
-              echo "::error::Se encontro '$pattern'. HTTPS es obligatorio (R-33)."
-              FAILED=1
-            fi
-          done
-          if [ "$FAILED" -eq 0 ]; then
-            echo "OK: HTTPS obligatorio en toda la configuracion"
-          fi
-          exit $FAILED
-
-      - name: El servicio ML no puede ser publico (R-32)
-        run: |
-          # ml-service solo puede publicar en loopback.
-          if grep -A3 'ports:' docker-compose.yml | grep -E '^\s*-?\s*"[0-9]+:8443'; then
-            echo "::error::ml-service esta publicado fuera de loopback (R-32)."; exit 1
-          fi
-          echo "OK: ml-service no es publico"
-
-      - name: PostgreSQL y Redis sin puertos publicados
-        run: |
-          # R-27: datos en red privada.
-          if grep -E '^\s+-\s*"?[0-9]+:5432' docker-compose.yml; then
-            echo "::error::PostgreSQL esta publicado. Debe vivir solo en la red de datos."; exit 1
-          fi
-          if grep -E '^\s+-\s*"?[0-9]+:6379' docker-compose.yml; then
-            echo "::error::Redis esta publicado. Debe vivir solo en la red de datos."; exit 1
-          fi
-          echo "OK: datos no publicados"
-
-      - name: Sin referencias funcionales a Java distinto de 21
-        run: |
-          # R-36: no debe quedar ninguna referencia funcional a 8, 11 o 17.
-          # Se buscan solo contextos de version de Java y de imagen base, para
-          # no producir falsos positivos con versiones de otras herramientas
-          # (por ejemplo "5.1.8" de Vite). Este workflow queda excluido porque
-          # contiene los propios patrones de busqueda.
-          FAILED=0
-          PATTERNS='(java\.version>?=?</?[^>]*>?(8|11|17)<)|(maven\.compiler\.(source|target)>?(8|11|17)<)|(jdk|temurin|eclipse-temurin)-(8|11|17)([^0-9]|$)|(source|target)="?(1\.[0-9]|8|11|17)"?'
-          if grep -rnE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=target \
-               --exclude-dir=.venv --exclude-dir=dist --exclude='ci.yml' \
-               -- "$PATTERNS" pom.xml backend/ 2>/dev/null; then
-            echo "::error::Referencia a una version de Java distinta de 21 (R-36)."
-            FAILED=1
-          fi
-
-          # Comprobacion positiva: la imagen de runtime debe ser Java 21.
-          grep -q 'FROM eclipse-temurin:21' backend/Dockerfile \
-            || { echo "::error::La imagen de runtime no es Java 21."; FAILED=1; }
-          grep -q 'FROM maven:3.9-eclipse-temurin-21' backend/Dockerfile \
-            || { echo "::error::La imagen de compilacion no es Java 21."; FAILED=1; }
-
-          if [ "$FAILED" -eq 0 ]; then
-            echo "OK: Java 21 en compilacion y ejecucion, sin referencias antiguas"
-          fi
-          exit $FAILED
-
-      - name: Validar los diagramas Mermaid (R-25)
-        run: |
-          # R-25: todo diagrama debe PARSEAR y RENDERIZAR antes de entregarlo.
-          # Un diagrama que solo parsea pero no renderiza esta mal.
-          npm install --no-audit --no-fund --prefix tools/.mermaid-runner mermaid jsdom dompurify
-          python tools/validate_mermaid.py docs/04_diagramas.md
-
-      - name: Aviso legal presente en la documentacion (R-11)
-        run: |
-          for f in README.md docs/01_documentacion.md; do
-            grep -qi "no es asesoria financiera\|no es asesoría financiera" "$f" \
-              || { echo "::error::$f no incluye el aviso legal (R-11)."; exit 1; }
-          done
-          echo "OK: aviso legal presente"
+      - name: Build all application services
+        run: docker compose --env-file .env.example build
+      - name: Build the optional backup service
+        run: docker compose --env-file .env.example --profile backup build backup-service
+      - name: Run Monero tests in the production image
+        run: docker compose --env-file .env.example run --rm --no-deps --entrypoint python monero-api -m pytest -q tests

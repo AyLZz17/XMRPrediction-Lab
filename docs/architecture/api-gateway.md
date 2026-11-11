@@ -1,34 +1,43 @@
 # API Gateway foundation
 
-The public browser traffic still enters through the existing Nginx frontend.
-Nginx forwards `/api/*` to the internal TypeScript gateway, which routes
-authentication requests to Spring Boot and existing market/model requests to
-the unchanged `Monero/` service:
+Browser API traffic enters through Nginx, which forwards `/api/*` to the
+internal TypeScript gateway. The gateway routes requests to the owning
+microservice:
 
 ```text
 Browser -> Nginx frontend -> Node.js/TypeScript API Gateway
-                               |-> Spring Boot Security Service -> PostgreSQL
-                               `-> Monero API (existing)
+                               |-> /api/auth/* -> Spring Boot -> PostgreSQL
+                               |-> /api/v1/market/* -> market-service -> MongoDB
+                               |                                  |-> Monero daily data
+                               |                                  `-> Kraken intraday
+                               |-> /api/v1/predictions/* -> prediction-service -> MongoDB
+                               `-> other /api/* -> Monero API (existing)
 ```
 
-The gateway exposes `GET /health` for process health and `GET /ready` for both
-dependency health checks. `/api/auth/*` routes to the security service; other
-`/api/*` routes continue to the Monero API. It preserves upstream HTTP status
+The gateway exposes `GET /health` for process health and `GET /ready` for
+dependency health checks, including Redis. It preserves upstream HTTP status
 codes, bodies, and authentication cookies. A gateway-to-upstream connection
-failure is returned as `502 upstream_unavailable`. The upstream timeout remains
-bounded at one hour to preserve existing long-running model-refresh behavior.
+failure is returned as `502 upstream_unavailable`.
+
+The shared API limit is 120 requests per IP per minute. Authentication routes
+additionally allow 10 requests per IP per minute and apply a five-minute block.
+Redis failures are fail-closed with HTTP 503; rejected requests return HTTP 429
+and `Retry-After`.
 
 Automatic retries are intentionally not enabled: retrying a `POST` can repeat
-side effects. Redis-backed rate limiting and authenticated service-to-service
-contracts remain later migration phases. Intraday chart intervals must wait
-for a provider with verified timestamped intraday coverage.
+side effects or expensive model training. The gateway proxy timeout is bounded
+at one hour for existing model-refresh behavior. Intraday requests use the same
+market route and are validated, cached, and persisted by `market-service`.
 
 ## Local checks
 
 ```powershell
-cd backend/services/api-gateway
+Set-Location backend\services\shared-observability
+npm ci
+Set-Location ..\api-gateway
 npm ci
 npm test
 ```
 
-From the repository root, validate Compose with `docker compose config --quiet`.
+From the repository root, validate Compose with
+`docker compose --env-file .env.example config --quiet`.

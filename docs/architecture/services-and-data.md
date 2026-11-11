@@ -1,13 +1,14 @@
 # Backend services and data ownership
 
 ```text
-Browser -> Nginx (Next.js static export) -> Node.js/TypeScript API Gateway
-                       |-> Spring Boot security -> PostgreSQL: users + auth_audit_events
-                       |-> market-service -> MongoDB: market_service.candles
-                       |                       `-> Monero API (daily OHLCV)
-                       |-> prediction-service -> MongoDB: prediction_service.predictions
-                       |                            `-> Monero API (models)
-                       `-> Redis: shared rate-limit counters
+Browser -> Nginx (Next.js static UI) -> Node.js/TypeScript API Gateway
+                         |-> Spring Boot security -> PostgreSQL: users + auth_audit_events
+                         |-> market-service -> MongoDB: market_service.candles + intraday_candles
+                         |                       |-> Monero API (daily OHLCV)
+                         |                       `-> Kraken (intraday XMR/USD)
+                         |-> prediction-service -> MongoDB: prediction_service.predictions
+                         |                            `-> Monero API (models)
+                         `-> Redis: shared rate-limit counters
 
 Optional operations profile: backup-service -> read-only PostgreSQL/MongoDB
 accounts -> age-encrypted archive -> authenticated SMTP
@@ -15,6 +16,9 @@ accounts -> age-encrypted archive -> authenticated SMTP
 Optional observability profile: Prometheus -> internal metrics endpoints on
 the gateway and services
 ```
+
+The component, data ownership, ingestion, and prediction flows are shown in
+[`diagrams.md`](diagrams.md).
 
 Services use a private Compose network. The browser enters through Nginx and
 the API Gateway only; databases are not reachable through API routes. PostgreSQL
@@ -54,10 +58,12 @@ traffic metrics. Service health/readiness endpoints check required dependencies.
 
 ## Time-series granularity
 
-The current Monero data contract provides daily OHLCV with calendar dates, not
-timestamped intraday trades/candles. The market service stores that verified
-daily data only. Five-minute and one-minute intervals remain unavailable until
-a market data source with those intervals and reliable timestamps is selected.
+The Monero data contract provides daily OHLCV with calendar dates. The
+market-service keeps that daily history separate from Kraken spot candles:
+5-minute data covers the last 12 hours and 1-minute data covers the last
+10 minutes. Intraday candle timestamps are UTC, the in-progress candle is
+excluded, and the frontend formats them in the browser's local time zone.
+Provider errors are shown without substituting daily data.
 
 ## Local configuration
 
