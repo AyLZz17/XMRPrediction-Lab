@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { logError, logInfo } from "@aylzz/shared-observability";
 import { createApp } from "./app";
 import { MongoMarketStore } from "./store";
 
@@ -22,14 +23,14 @@ async function start(): Promise<void> {
     await store.ensureIndexes();
 
     const server = createApp(moneroApiBaseUrl, store).listen(port, "0.0.0.0", () => {
-        console.log(`Market service listening on port ${port}`);
+        logInfo("market-service", `Listening on port ${port}`);
     });
 
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
         process.on(signal, () => {
             server.close(error => {
                 if (error) {
-                    console.error("Market service shutdown failed", error);
+                    logError("market-service", "Shutdown failed", error);
                     process.exitCode = 1;
                 }
                 void mongoClient.close();
@@ -39,6 +40,6 @@ async function start(): Promise<void> {
 }
 
 start().catch(error => {
-    console.error("Market service startup failed", error);
+    logError("market-service", "Startup failed", error);
     process.exitCode = 1;
 });

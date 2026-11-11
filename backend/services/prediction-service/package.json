@@ -12,6 +12,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@aylzz/shared-observability": "file:../shared-observability",
     "express": "^5.1.0",
     "mongodb": "^6.20.0",
     "zod": "^4.6.7"

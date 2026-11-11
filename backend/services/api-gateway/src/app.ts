@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from "express";
+import { attachObservability, logError } from "@aylzz/shared-observability";
 import { RateLimiterRes } from "rate-limiter-flexible";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
@@ -41,6 +42,7 @@ export function createApp(targets: GatewayTargets) {
     const app = express();
     app.disable("x-powered-by");
     app.set("trust proxy", 1);
+    attachObservability(app, "api-gateway", (_method, path) => gatewayRoute(path));
 
     app.get("/health", (_request, response) => {
         response.status(200).json({ status: "ok", service: "api-gateway" });
@@ -66,7 +68,7 @@ export function createApp(targets: GatewayTargets) {
             try {
                 await targets.rateLimiters.pingRedis();
             } catch (error) {
-                console.error("API gateway Redis readiness check failed", error);
+                logError("api-gateway", "Redis readiness check failed", error);
                 response.status(503).json({ status: "not_ready", dependency: "redis" });
                 return;
             }
@@ -123,11 +125,11 @@ async function checkDependency(
             signal: AbortSignal.timeout(readinessTimeoutMs)
         });
         if (!response.ok) {
-            console.error(`${name} readiness returned HTTP ${response.status}`);
+            logError("api-gateway", `${name} readiness returned HTTP ${response.status}`);
         }
         return { name, ready: response.ok };
     } catch (error) {
-        console.error(`${name} readiness check failed`, error);
+        logError("api-gateway", `${name} readiness check failed`, error);
         return { name, ready: false };
     }
 }
@@ -146,7 +148,7 @@ function rateLimit(limiter: GatewayRateLimiter, keyPrefix: string) {
                 return;
             }
 
-            console.error(`Redis ${keyPrefix} rate limiter failed`, error);
+            logError("api-gateway", `Redis ${keyPrefix} rate limiter failed`, error);
             response.status(503).json({ error: "rate_limit_unavailable" });
         });
     };
@@ -165,7 +167,7 @@ function createServiceProxy(
         proxyTimeout: proxyTimeoutMs,
         on: {
             error(error, _request, response) {
-                console.error(`API gateway could not reach ${serviceName}`, error);
+                logError("api-gateway", `API gateway could not reach ${serviceName}`, error);
                 if ("writeHead" in response && !response.headersSent) {
                     response.writeHead(502, { "content-type": "application/json" });
                     response.end(JSON.stringify({ error: "upstream_unavailable" }));
@@ -173,4 +175,23 @@ function createServiceProxy(
             }
         }
     });
+}
+
+function gatewayRoute(path: string): string {
+    if (path === "/health" || path === "/ready") {
+        return path;
+    }
+    if (path === "/api/auth" || path.startsWith("/api/auth/")) {
+        return "auth";
+    }
+    if (path === "/api/v1/market" || path.startsWith("/api/v1/market/")) {
+        return "market";
+    }
+    if (path === "/api/v1/predictions" || path.startsWith("/api/v1/predictions/")) {
+        return "predictions";
+    }
+    if (path.startsWith("/api/")) {
+        return "monero";
+    }
+    return "unmatched";
 }

@@ -3,10 +3,14 @@ package com.aylzz.security.auth;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aylzz.security.audit.AuthAuditEventRepository;
+import com.aylzz.security.audit.AuthAuditEventType;
 import com.aylzz.security.user.AppUserRepository;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -42,14 +46,19 @@ class AuthFlowIntegrationTest {
     @Autowired
     AppUserRepository users;
 
+    @Autowired
+    AuthAuditEventRepository auditEvents;
+
     @Test
     void registrationPersistsHashedPasswordAndCreatesHttpOnlyCookie() throws Exception {
         mvc.perform(post("/api/auth/register")
+                        .header("X-Request-ID", "register-trace-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"Researcher@aylzz.lab","password":"Secure-password-123"}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("X-Request-ID", "register-trace-1"))
                 .andExpect(cookie().exists("aylzz_session"))
                 .andExpect(jsonPath("$.user.email").value("researcher@aylzz.lab"));
 
@@ -58,6 +67,10 @@ class AuthFlowIntegrationTest {
                 "Secure-password-123", storedUser.getPasswordHash());
         org.junit.jupiter.api.Assertions.assertTrue(
                 storedUser.getPasswordHash().startsWith("$2a$"));
+        var audit = auditEvents.findFirstByEventTypeAndUserIdOrderByOccurredAtDesc(
+                AuthAuditEventType.REGISTRATION_SUCCEEDED, storedUser.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals("register-trace-1", audit.getRequestId());
+        org.junit.jupiter.api.Assertions.assertNotNull(audit.getOccurredAt());
     }
 
     @Test
@@ -99,5 +112,29 @@ class AuthFlowIntegrationTest {
                 .content("""
                         {"email":"weak@example.com","password":"tiny"}
                         """)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectedLoginIsAuditedWithoutPersistingTheSubmittedEmail() throws Exception {
+        mvc.perform(post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"email":"unknown@example.com","password":"Unknown-password-123"}
+                                        """))
+                        .andExpect(status().isUnauthorized());
+        var audit = auditEvents.findAll().stream()
+                        .filter(event -> event.getEventType() == AuthAuditEventType.LOGIN_FAILED)
+                        .findFirst()
+                        .orElseThrow();
+        org.junit.jupiter.api.Assertions.assertNull(audit.getUserId());
+    }
+
+    @Test
+    void prometheusEndpointExportsHttpMetrics() throws Exception {
+        mvc.perform(get("/api/auth/health")).andExpect(status().isOk());
+        mvc.perform(get("/actuator/prometheus"))
+                        .andExpect(status().isOk())
+                        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                                .content().string(Matchers.containsString("http_server_requests_seconds")));
     }
 }

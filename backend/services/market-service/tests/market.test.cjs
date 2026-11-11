@@ -83,3 +83,19 @@ test("invalid market limits are rejected before contacting Monero", async () => 
         maximum: 3650
     });
 });
+
+test("market exposes request correlation and Prometheus metrics", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/market?limit=2`, {
+        headers: { "x-request-id": "market-trace-1" }
+    });
+    assert.equal(response.headers.get("x-request-id"), "market-trace-1");
+
+    const metrics = await fetch(`${baseUrl}/metrics`);
+    const text = await metrics.text();
+    assert.equal(metrics.status, 200);
+    const requestMetric = text.split("\n")
+        .find(line => line.startsWith("http_requests_total{")
+            && line.includes('route="/api/v1/market"'));
+    assert.ok(requestMetric);
+    assert.match(requestMetric, /service="market-service"/);
+});

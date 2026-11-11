@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { logError, logInfo } from "@aylzz/shared-observability";
 import { RateLimiterRedis } from "rate-limiter-flexible";
 import { createApp } from "./app";
 
@@ -16,7 +17,7 @@ const redis = new Redis(redisUrl, {
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false
 });
-redis.on("error", error => console.error("API gateway Redis connection error", error));
+redis.on("error", error => logError("api-gateway", "Redis connection error", error));
 
 const rateLimiters = {
     api: new RateLimiterRedis({
@@ -46,18 +47,18 @@ const server = createApp({
         ?? "http://prediction-service:8092",
     rateLimiters
 }).listen(port, "0.0.0.0", () => {
-    console.log(`API gateway listening on port ${port}`);
+    logInfo("api-gateway", `Listening on port ${port}`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.on(signal, () => {
         server.close(error => {
             if (error) {
-                console.error("API gateway shutdown failed", error);
+                logError("api-gateway", "Shutdown failed", error);
                 process.exitCode = 1;
             }
             void redis.quit().catch(redisError => {
-                console.error("API gateway Redis shutdown failed", redisError);
+                logError("api-gateway", "Redis shutdown failed", redisError);
                 process.exitCode = 1;
             });
         });

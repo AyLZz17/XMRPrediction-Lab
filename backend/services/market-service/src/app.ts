@@ -1,4 +1,8 @@
 import express from "express";
+import {
+    attachObservability,
+    type ObservabilityLogger
+} from "@aylzz/shared-observability";
 import { z } from "zod";
 import { marketResponseSchema, type MarketResponse } from "./contracts";
 import { marketResponseFromStoredRows, type MarketStore } from "./store";
@@ -15,6 +19,13 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
 
     const app = express();
     app.disable("x-powered-by");
+    const logger = attachObservability(app, "market-service", (_method, path) => {
+        if (path === "/health" || path === "/ready"
+            || path === "/api/v1/market" || path === "/api/v1/market/refresh") {
+            return path;
+        }
+        return "unmatched";
+    });
 
     app.get("/health", (_request, response) => {
         response.status(200).json({ status: "ok", service: "market-service" });
@@ -25,7 +36,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             await store.ping();
             response.status(200).json({ status: "ready", service: "market-service" });
         } catch (error) {
-            console.error("Market MongoDB readiness check failed", error);
+            logger.logError("MongoDB readiness check failed", error);
             response.status(503).json({ status: "not_ready", dependency: "market-mongodb" });
         }
     });
@@ -46,7 +57,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
                 signal: AbortSignal.timeout(requestTimeoutMs)
             });
         } catch (error) {
-            console.error("Market service could not reach Monero API", error);
+            logger.logError("Could not reach Monero API", error);
             response.status(502).json({ error: "monero_api_unavailable" });
             return;
         }
@@ -56,7 +67,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             return;
         }
 
-        const payload = await readMarketPayload(upstream);
+        const payload = await readMarketPayload(upstream, logger);
         if (!payload) {
             response.status(502).json({ error: "invalid_monero_market_response" });
             return;
@@ -67,7 +78,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             const storedRows = await store.listLatest(payload.symbol, payload.rows.length);
             response.status(200).json(marketResponseFromStoredRows(payload, storedRows));
         } catch (error) {
-            console.error("Market service could not persist market data", error);
+            logger.logError("Could not persist market data", error);
             response.status(503).json({ error: "market_storage_unavailable" });
         }
     });
@@ -80,7 +91,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
                 signal: AbortSignal.timeout(refreshTimeoutMs)
             });
         } catch (error) {
-            console.error("Market refresh could not reach Monero API", error);
+            logger.logError("Market refresh could not reach Monero API", error);
             response.status(502).json({ error: "monero_api_unavailable" });
             return;
         }
@@ -90,7 +101,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             return;
         }
 
-        const payload = await readMarketPayload(upstream);
+        const payload = await readMarketPayload(upstream, logger);
         if (!payload) {
             response.status(502).json({ error: "invalid_monero_market_response" });
             return;
@@ -101,7 +112,7 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             const storedRows = await store.listLatest(payload.symbol, payload.rows.length);
             response.status(200).json(marketResponseFromStoredRows(payload, storedRows));
         } catch (error) {
-            console.error("Market service could not persist refreshed market data", error);
+            logger.logError("Could not persist refreshed market data", error);
             response.status(503).json({ error: "market_storage_unavailable" });
         }
     });
@@ -109,18 +120,21 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
     return app;
 }
 
-async function readMarketPayload(response: Response): Promise<MarketResponse | null> {
+async function readMarketPayload(
+    response: Response,
+    logger: ObservabilityLogger
+): Promise<MarketResponse | null> {
     let body: unknown;
     try {
         body = await response.json();
     } catch (error) {
-        console.error("Monero market API returned invalid JSON", error);
+        logger.logError("Monero market API returned invalid JSON", error);
         return null;
     }
 
     const parsed = marketResponseSchema.safeParse(body);
     if (!parsed.success) {
-        console.error("Monero market API response did not match the OHLCV contract");
+        logger.logError("Monero market API response did not match the OHLCV contract");
         return null;
     }
     return parsed.data;

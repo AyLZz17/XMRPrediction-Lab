@@ -1,4 +1,5 @@
 import express from "express";
+import { attachObservability } from "@aylzz/shared-observability";
 import { z } from "zod";
 import {
     predictionRequestSchema,
@@ -17,6 +18,14 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
 
     const app = express();
     app.disable("x-powered-by");
+    const logger = attachObservability(app, "prediction-service", (_method, path) => {
+        if (path === "/health" || path === "/ready"
+            || path === "/api/v1/predictions"
+            || path === "/api/v1/predictions/history") {
+            return path;
+        }
+        return "unmatched";
+    });
     app.use(express.json({ limit: "16kb" }));
 
     app.get("/health", (_request, response) => {
@@ -28,7 +37,7 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
             await store.ping();
             response.status(200).json({ status: "ready", service: "prediction-service" });
         } catch (error) {
-            console.error("Prediction MongoDB readiness check failed", error);
+            logger.logError("MongoDB readiness check failed", error);
             response.status(503).json({ status: "not_ready", dependency: "prediction-mongodb" });
         }
     });
@@ -45,7 +54,7 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
             const items = await store.listLatest(parsedLimit.data);
             response.status(200).json({ items, count: items.length });
         } catch (error) {
-            console.error("Prediction history could not be read from MongoDB", error);
+            logger.logError("Prediction history could not be read from MongoDB", error);
             response.status(503).json({ error: "prediction_storage_unavailable" });
         }
     });
@@ -66,7 +75,7 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
                 signal: AbortSignal.timeout(requestTimeoutMs)
             });
         } catch (error) {
-            console.error("Prediction service could not reach Monero API", error);
+            logger.logError("Could not reach Monero API", error);
             response.status(502).json({ error: "monero_api_unavailable" });
             return;
         }
@@ -83,13 +92,13 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
         try {
             body = await upstream.json();
         } catch (error) {
-            console.error("Monero prediction API returned invalid JSON", error);
+            logger.logError("Monero prediction API returned invalid JSON", error);
             response.status(502).json({ error: "invalid_monero_prediction_response" });
             return;
         }
         const parsedResponse = predictionResponseSchema.safeParse(body);
         if (!parsedResponse.success) {
-            console.error("Monero prediction API response did not match its contract");
+            logger.logError("Monero prediction API response did not match its contract");
             response.status(502).json({ error: "invalid_monero_prediction_response" });
             return;
         }
@@ -98,7 +107,7 @@ export function createApp(moneroApiBaseUrl: string, store: PredictionStore) {
             await store.save(parsedRequest.data, parsedResponse.data);
             response.status(200).json(parsedResponse.data);
         } catch (error) {
-            console.error("Prediction result could not be persisted", error);
+            logger.logError("Prediction result could not be persisted", error);
             response.status(503).json({ error: "prediction_storage_unavailable" });
         }
     });

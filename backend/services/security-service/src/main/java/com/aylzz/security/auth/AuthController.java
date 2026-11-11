@@ -1,6 +1,8 @@
 package com.aylzz.security.auth;
 
 import com.aylzz.security.auth.AuthService.AuthResult;
+import com.aylzz.security.audit.AuthAuditEventType;
+import com.aylzz.security.audit.AuthAuditService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -22,12 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final AuthAuditService audit;
     private final boolean secureCookie;
 
     public AuthController(
             AuthService authService,
+            AuthAuditService audit,
             @Value("${security.cookie.secure}") boolean secureCookie) {
         this.authService = authService;
+        this.audit = audit;
         this.secureCookie = secureCookie;
     }
 
@@ -54,7 +59,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        if (user != null) {
+            audit.recordSuccess(AuthAuditEventType.LOGOUT, user.id());
+        }
         ResponseCookie cookie = ResponseCookie.from(JwtAuthenticationFilter.COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(secureCookie)

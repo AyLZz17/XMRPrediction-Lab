@@ -139,7 +139,8 @@ services:
 
   market-service:
     build:
-      context: ./backend/services/market-service
+      context: ./backend/services
+      dockerfile: market-service/Dockerfile
     environment:
       PORT: "8090"
       MONERO_API_BASE_URL: http://monero-api:8000
@@ -163,7 +164,8 @@ services:
 
   prediction-service:
     build:
-      context: ./backend/services/prediction-service
+      context: ./backend/services
+      dockerfile: prediction-service/Dockerfile
     environment:
       PORT: "8092"
       MONERO_API_BASE_URL: http://monero-api:8000
@@ -187,7 +189,8 @@ services:
 
   api-gateway:
     build:
-      context: ./backend/services/api-gateway
+      context: ./backend/services
+      dockerfile: api-gateway/Dockerfile
     environment:
       PORT: "8080"
       MONERO_API_BASE_URL: http://monero-api:8000
@@ -253,6 +256,37 @@ services:
         condition: service_healthy
     restart: on-failure:5
 
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.16.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      market-service:
+        condition: service_healthy
+      prediction-service:
+        condition: service_healthy
+      security-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:9090/-/ready || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   frontend:
     build:
       context: .
@@ -277,3 +311,4 @@ volumes:
   users-db-data:
   mongodb-data:
   redis-data:
+  prometheus-data:

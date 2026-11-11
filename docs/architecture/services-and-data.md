@@ -2,7 +2,7 @@
 
 ```text
 Browser -> Nginx (Next.js static export) -> Node.js/TypeScript API Gateway
-                       |-> Spring Boot security -> PostgreSQL: users
+                       |-> Spring Boot security -> PostgreSQL: users + auth_audit_events
                        |-> market-service -> MongoDB: market_service.candles
                        |                       `-> Monero API (daily OHLCV)
                        |-> prediction-service -> MongoDB: prediction_service.predictions
@@ -11,6 +11,9 @@ Browser -> Nginx (Next.js static export) -> Node.js/TypeScript API Gateway
 
 Optional operations profile: backup-service -> read-only PostgreSQL/MongoDB
 accounts -> age-encrypted archive -> authenticated SMTP
+
+Optional observability profile: Prometheus -> internal metrics endpoints on
+the gateway and services
 ```
 
 Services use a private Compose network. The browser enters through Nginx and
@@ -28,6 +31,11 @@ The opt-in backup runner is isolated from request traffic and is documented in
 [`../operations/backup-and-recovery.md`](../operations/backup-and-recovery.md).
 It exports the user, market, and prediction databases; Redis and Monero
 volumes remain out of scope.
+
+The opt-in Prometheus profile scrapes the Node services and Spring Actuator.
+It is bound to host loopback only; its operations and audit data are documented
+in [`../operations/observability.md`](../operations/observability.md).
+Monero remains outside the instrumentation changes.
 
 ## Gateway throttling
 

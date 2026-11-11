@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.aylzz.security.auth.AuthService.AuthResult;
+import com.aylzz.security.audit.AuthAuditEventType;
+import com.aylzz.security.audit.AuthAuditService;
 import com.aylzz.security.user.AppUser;
 import com.aylzz.security.user.AppUserRepository;
 import java.util.Optional;
@@ -30,13 +33,16 @@ class AuthServiceTest {
     @Mock
     JwtService jwtService;
 
+    @Mock
+    AuthAuditService audit;
+
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder(4);
-        authService = new AuthService(users, passwordEncoder, jwtService);
+        authService = new AuthService(users, passwordEncoder, jwtService, audit);
     }
 
     @Test
@@ -58,6 +64,8 @@ class AuthServiceTest {
                 "Strong-password-123", savedUser.getValue().getPasswordHash()));
         assertEquals("signed-token", result.token());
         assertEquals("researcher@example.com", result.user().email());
+        verify(audit).recordSuccess(
+                AuthAuditEventType.REGISTRATION_SUCCEEDED, result.user().id());
     }
 
     @Test
@@ -75,6 +83,10 @@ class AuthServiceTest {
                 () -> authService.login("researcher@example.com", "wrong-password"));
         assertThrows(BadCredentialsException.class,
                 () -> authService.login("researcher@example.com", "é".repeat(37)));
+        verify(audit).recordSuccess(
+                AuthAuditEventType.LOGIN_SUCCEEDED,
+                users.findByEmail("researcher@example.com").orElseThrow().getId());
+        verify(audit, times(2)).recordFailure(AuthAuditEventType.LOGIN_FAILED);
     }
 
     @Test
@@ -88,5 +100,6 @@ class AuthServiceTest {
         assertThrows(InvalidPasswordException.class,
                 () -> authService.register(
                         "large-password@example.com", "é".repeat(37)));
+        verify(audit, times(2)).recordFailure(AuthAuditEventType.REGISTRATION_REJECTED);
     }
 }

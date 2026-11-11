@@ -11,6 +11,7 @@ let gatewayUrl;
 let blockApi = false;
 let blockAuth = false;
 let redisUnavailable = false;
+let observedRequestId;
 
 function listen(server) {
     return new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
@@ -24,6 +25,7 @@ before(async () => {
             return;
         }
         if (request.url === "/api/v1/models") {
+            observedRequestId = request.headers["x-request-id"];
             response.writeHead(207, { "content-type": "application/json" });
             response.end(JSON.stringify({ source: "monero-api" }));
             return;
@@ -168,6 +170,30 @@ test("preserves fallback routes to Monero", async () => {
     const response = await fetch(`${gatewayUrl}/api/v1/models`);
     assert.equal(response.status, 207);
     assert.deepEqual(await response.json(), { source: "monero-api" });
+});
+
+test("propagates safe request IDs and exposes bounded Prometheus metrics", async () => {
+    const response = await fetch(`${gatewayUrl}/api/v1/models`, {
+        headers: { "x-request-id": "trace-123" }
+    });
+    assert.equal(response.status, 207);
+    assert.equal(response.headers.get("x-request-id"), "trace-123");
+    assert.equal(observedRequestId, "trace-123");
+
+    const invalidIdResponse = await fetch(`${gatewayUrl}/api/v1/models`, {
+        headers: { "x-request-id": "invalid id" }
+    });
+    assert.match(invalidIdResponse.headers.get("x-request-id"), /^[0-9a-f-]{36}$/);
+
+    const metrics = await fetch(`${gatewayUrl}/metrics`);
+    assert.equal(metrics.status, 200);
+    assert.match(metrics.headers.get("content-type"), /text\/plain/);
+    const text = await metrics.text();
+    const requestMetric = text.split("\n")
+        .find(line => line.startsWith("http_requests_total{") && line.includes('route="monero"'));
+    assert.ok(requestMetric);
+    assert.match(requestMetric, /service="api-gateway"/);
+    assert.match(text, /http_request_duration_seconds_bucket/);
 });
 
 test("routes authentication to the security service and preserves cookies", async () => {

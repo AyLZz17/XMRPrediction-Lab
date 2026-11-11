@@ -79,3 +79,19 @@ test("prediction history reads from the service-owned store", async () => {
         count: 1
     });
 });
+
+test("prediction service exposes request correlation and Prometheus metrics", async () => {
+    const response = await fetch(`${baseUrl}/api/v1/predictions/history?limit=1`, {
+        headers: { "x-request-id": "prediction-trace-1" }
+    });
+    assert.equal(response.headers.get("x-request-id"), "prediction-trace-1");
+
+    const metrics = await fetch(`${baseUrl}/metrics`);
+    const text = await metrics.text();
+    assert.equal(metrics.status, 200);
+    const requestMetric = text.split("\n")
+        .find(line => line.startsWith("http_requests_total{")
+            && line.includes('route="/api/v1/predictions/history"'));
+    assert.ok(requestMetric);
+    assert.match(requestMetric, /service="prediction-service"/);
+});

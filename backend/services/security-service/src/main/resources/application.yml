@@ -16,6 +16,17 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+logging:
+  structured:
+    format:
+      console: logstash
+
 security:
   jwt:
     issuer: ${JWT_ISSUER:aylzz-crypto-lab}
