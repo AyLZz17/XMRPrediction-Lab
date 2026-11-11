@@ -14,6 +14,9 @@ repository architecture, including the Python ML service in
 - A Trivy v0.36.0 filesystem scan for high and critical vulnerabilities and
   misconfiguration.
 
+The Trivy scan fails on HIGH or CRITICAL findings. Upgrade affected dependencies
+to fixed versions reported by the scan before relaxing its severity threshold.
+
 No job deploys to an environment or sends a real backup email. Deployment,
 SMTP credentials, the age private key, and the recipient remain environment
 specific and must not be added to repository secrets until an operator

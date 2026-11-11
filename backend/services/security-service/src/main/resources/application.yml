@@ -17,10 +17,16 @@ spring:
     open-in-view: false
 
 management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   endpoints:
     web:
       exposure:
-        include: health,prometheus
+        include:
+          - health
+          - prometheus
 
 logging:
   structured:

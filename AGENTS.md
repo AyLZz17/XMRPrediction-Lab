@@ -24,6 +24,8 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
   configurar Chromium headless en el runner.
 - Mantener Trivy en CI en una versión cuya acción `setup-trivy` dependiente
   apunte a una referencia disponible.
+- Corregir hallazgos HIGH/CRITICAL del escaneo Trivy actualizando las
+  dependencias vulnerables a versiones corregidas cuando estén disponibles.
 - Las predicciones son experimentales y no constituyen asesoría financiera.
 
 ## 2. Arquitectura objetivo aprobada
