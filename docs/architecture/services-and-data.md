@@ -8,6 +8,9 @@ Browser -> Nginx (Next.js static export) -> Node.js/TypeScript API Gateway
                        |-> prediction-service -> MongoDB: prediction_service.predictions
                        |                            `-> Monero API (models)
                        `-> Redis: shared rate-limit counters
+
+Optional operations profile: backup-service -> read-only PostgreSQL/MongoDB
+accounts -> age-encrypted archive -> authenticated SMTP
 ```
 
 Services use a private Compose network. The browser enters through Nginx and
@@ -20,6 +23,11 @@ for local database management only.
 The Next.js app and its typed API adapters are in `frontend/next-app/` and
 `services-frontend/`. The prior HTML interface remains reachable under
 `/legacy/` while the migration is validated.
+
+The opt-in backup runner is isolated from request traffic and is documented in
+[`../operations/backup-and-recovery.md`](../operations/backup-and-recovery.md).
+It exports the user, market, and prediction databases; Redis and Monero
+volumes remain out of scope.
 
 ## Gateway throttling
 

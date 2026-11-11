@@ -51,8 +51,11 @@ services:
       POSTGRES_DB: "${USERS_DB_NAME:-aylzz_users}"
       POSTGRES_USER: "${USERS_DB_USER:-aylzz_app}"
       POSTGRES_PASSWORD: "${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}"
+      USERS_DB_BACKUP_USER: "${USERS_DB_BACKUP_USER:-}"
+      USERS_DB_BACKUP_PASSWORD: "${USERS_DB_BACKUP_PASSWORD:-}"
     volumes:
       - users-db-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-backup-user.sh:/docker-entrypoint-initdb.d/20-create-backup-user.sh:ro
     ports:
       - "127.0.0.1:5433:5432"
     restart: unless-stopped
@@ -97,6 +100,10 @@ services:
       MONGO_MARKET_PASSWORD: "${MONGO_MARKET_PASSWORD:?Set MONGO_MARKET_PASSWORD in .env}"
       MONGO_PREDICTION_USER: "${MONGO_PREDICTION_USER:-prediction_service}"
       MONGO_PREDICTION_PASSWORD: "${MONGO_PREDICTION_PASSWORD:?Set MONGO_PREDICTION_PASSWORD in .env}"
+      MONGO_MARKET_BACKUP_USER: "${MONGO_MARKET_BACKUP_USER:-}"
+      MONGO_MARKET_BACKUP_PASSWORD: "${MONGO_MARKET_BACKUP_PASSWORD:-}"
+      MONGO_PREDICTION_BACKUP_USER: "${MONGO_PREDICTION_BACKUP_USER:-}"
+      MONGO_PREDICTION_BACKUP_PASSWORD: "${MONGO_PREDICTION_BACKUP_PASSWORD:-}"
     volumes:
       - mongodb-data:/data/db
       - ./infra/mongodb/init-users.js:/docker-entrypoint-initdb.d/10-init-users.js:ro
@@ -212,6 +219,39 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  backup-service:
+    profiles: ["backup"]
+    build:
+      context: ./infra/backup
+    environment:
+      USERS_DB_HOST: users-db
+      USERS_DB_PORT: "5432"
+      USERS_DB_NAME: "${USERS_DB_NAME:-aylzz_users}"
+      USERS_DB_BACKUP_USER: "${USERS_DB_BACKUP_USER:-}"
+      USERS_DB_BACKUP_PASSWORD: "${USERS_DB_BACKUP_PASSWORD:-}"
+      MONGO_HOST: mongodb
+      MONGO_PORT: "27017"
+      MONGO_MARKET_BACKUP_USER: "${MONGO_MARKET_BACKUP_USER:-}"
+      MONGO_MARKET_BACKUP_PASSWORD: "${MONGO_MARKET_BACKUP_PASSWORD:-}"
+      MONGO_PREDICTION_BACKUP_USER: "${MONGO_PREDICTION_BACKUP_USER:-}"
+      MONGO_PREDICTION_BACKUP_PASSWORD: "${MONGO_PREDICTION_BACKUP_PASSWORD:-}"
+      BACKUP_SMTP_HOST: "${BACKUP_SMTP_HOST:-}"
+      BACKUP_SMTP_PORT: "${BACKUP_SMTP_PORT:-587}"
+      BACKUP_SMTP_USERNAME: "${BACKUP_SMTP_USERNAME:-}"
+      BACKUP_SMTP_PASSWORD: "${BACKUP_SMTP_PASSWORD:-}"
+      BACKUP_SMTP_FROM: "${BACKUP_SMTP_FROM:-}"
+      BACKUP_EMAIL_TO: "${BACKUP_EMAIL_TO:-}"
+      BACKUP_AGE_RECIPIENT: "${BACKUP_AGE_RECIPIENT:-}"
+      BACKUP_INTERVAL_SECONDS: "${BACKUP_INTERVAL_SECONDS:-86400}"
+      BACKUP_RETRY_SECONDS: "${BACKUP_RETRY_SECONDS:-900}"
+      BACKUP_MAX_ATTACHMENT_BYTES: "${BACKUP_MAX_ATTACHMENT_BYTES:-18000000}"
+    depends_on:
+      users-db:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: on-failure:5
 
   frontend:
     build:
