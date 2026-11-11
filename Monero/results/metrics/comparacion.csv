@@ -1,0 +1,6 @@
+modelo,objetivo,n_semillas,mae_media,mae_std,rmse_media,rmse_std,mape_media,mape_std,acierto_direccion_media,acierto_direccion_std,segundos_entrenamiento_media,segundos_entrenamiento_std
+naive,precio,1,9.6854,0.0,15.0352,0.0,2.6834,0.0,1.5244,0.0,0.04,0.0
+arima,precio,1,9.9351,0.0,15.4034,0.0,2.7471,0.0,47.1037,0.0,48.89,0.0
+lstm,retorno,3,9.9866,0.0581,15.4683,0.0836,2.7594,0.0153,50.3557,0.5182,55.6333,14.2346
+gru,retorno,3,10.1124,0.2435,15.5649,0.2887,2.7995,0.0688,47.9167,3.2393,63.68,25.4701
+moving_average,precio,1,15.1974,0.0,25.0166,0.0,4.1226,0.0,54.5732,0.0,0.04,0.0

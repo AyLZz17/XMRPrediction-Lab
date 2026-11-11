@@ -1,0 +1,11 @@
+{
+    "modelo": "lstm",
+    "objetivo": "retorno",
+    "semilla": 0,
+    "mae": 10.02450804039154,
+    "rmse": 15.51393050972461,
+    "mape": 2.7695497873881867,
+    "acierto_direccion": 51.0670731707317,
+    "segundos_entrenamiento": 52.64,
+    "n_test": 656
+}

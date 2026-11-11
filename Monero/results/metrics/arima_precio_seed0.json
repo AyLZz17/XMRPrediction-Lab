@@ -1,0 +1,11 @@
+{
+    "modelo": "arima",
+    "objetivo": "precio",
+    "semilla": 0,
+    "mae": 9.935123190155224,
+    "rmse": 15.403448128600292,
+    "mape": 2.7471480992035104,
+    "acierto_direccion": 47.103658536585364,
+    "segundos_entrenamiento": 48.89,
+    "n_test": 656
+}

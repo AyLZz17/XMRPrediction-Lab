@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Artefactos entrenados (se regeneran con src/train.py)
+/models/
+
+# Entorno local
+.env
+.DS_Store
+Thumbs.db
+data/.pipeline.lock
+
+# Respaldos/ediciones temporales
+*.bak
+*.tmp
+
+# Temporales de Word/Office
+~$*

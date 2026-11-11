@@ -1,0 +1,11 @@
+{
+    "modelo": "gru",
+    "objetivo": "retorno",
+    "semilla": 0,
+    "mae": 10.330582183346406,
+    "rmse": 15.858919107537348,
+    "mape": 2.859603235591116,
+    "acierto_direccion": 47.71341463414634,
+    "segundos_entrenamiento": 45.59,
+    "n_test": 656
+}
