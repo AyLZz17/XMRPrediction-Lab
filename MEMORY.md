@@ -3,7 +3,7 @@
 
 ## Contexto actual
 - AyLZz Crypto Lab es un portal preliminar para análisis diario de Monero
-  (XMR-USD); arquitectura y planeación finales pendientes del usuario.
+  (XMR-USD); la arquitectura objetivo ya está acordada y su migración pendiente.
 - Docker Compose integra frontend Nginx y API FastAPI en `Monero/src/api.py`.
 - Datos Yahoo Finance -> `Monero/data/raw/xmr_usd_diario.csv` -> preparación
   del dataset -> predicción de cierre del siguiente día.
@@ -42,6 +42,8 @@
   intervalos intradía; probado con ambos indicadores y móvil sin overflow.
 
 ## Pendiente
-- Incorporar la arquitectura y planeación que entregará el usuario.
+- Arquitectura objetivo aceptada: Next.js, Node+TS, identidad Spring+PostgreSQL,
+  mercado/predicciones MongoDB separado y Redis. Fase 0 en
+  `docs/architecture/`; implementación incremental pendiente.
 - Portal accesible en `http://57.156.63.247:8081/`; mantener el origen del NSG
   restringido a la IP del investigador mientras el login sea demo.
