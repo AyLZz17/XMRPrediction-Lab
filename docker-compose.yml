@@ -87,6 +87,97 @@ services:
       retries: 3
       start_period: 45s
 
+  mongodb:
+    image: mongo:8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_ROOT_USER:-root}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}"
+      MONGO_INITDB_DATABASE: admin
+      MONGO_MARKET_USER: "${MONGO_MARKET_USER:-market_service}"
+      MONGO_MARKET_PASSWORD: "${MONGO_MARKET_PASSWORD:?Set MONGO_MARKET_PASSWORD in .env}"
+      MONGO_PREDICTION_USER: "${MONGO_PREDICTION_USER:-prediction_service}"
+      MONGO_PREDICTION_PASSWORD: "${MONGO_PREDICTION_PASSWORD:?Set MONGO_PREDICTION_PASSWORD in .env}"
+    volumes:
+      - mongodb-data:/data/db
+      - ./infra/mongodb/init-users.js:/docker-entrypoint-initdb.d/10-init-users.js:ro
+    ports:
+      - "127.0.0.1:27018:27017"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping').ok"
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command:
+      - sh
+      - -c
+      - "umask 077; printf 'user default on >%s ~* &* +@all\\n' \"$$REDIS_PASSWORD\" > /data/users.acl; exec redis-server --aclfile /data/users.acl --appendonly yes"
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  market-service:
+    build:
+      context: ./backend/services/market-service
+    environment:
+      PORT: "8090"
+      MONERO_API_BASE_URL: http://monero-api:8000
+      MONGO_URL: "mongodb://${MONGO_MARKET_USER:-market_service}:${MONGO_MARKET_PASSWORD:?Set MONGO_MARKET_PASSWORD in .env}@mongodb:27017/market_service?authSource=admin"
+    expose:
+      - "8090"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      monero-api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:8090/ready || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  prediction-service:
+    build:
+      context: ./backend/services/prediction-service
+    environment:
+      PORT: "8092"
+      MONERO_API_BASE_URL: http://monero-api:8000
+      MONGO_URL: "mongodb://${MONGO_PREDICTION_USER:-prediction_service}:${MONGO_PREDICTION_PASSWORD:?Set MONGO_PREDICTION_PASSWORD in .env}@mongodb:27017/prediction_service?authSource=admin"
+    expose:
+      - "8092"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      monero-api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:8092/ready || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
   api-gateway:
     build:
       context: ./backend/services/api-gateway
@@ -94,6 +185,9 @@ services:
       PORT: "8080"
       MONERO_API_BASE_URL: http://monero-api:8000
       SECURITY_SERVICE_BASE_URL: http://security-service:8081
+      MARKET_SERVICE_BASE_URL: http://market-service:8090
+      PREDICTION_SERVICE_BASE_URL: http://prediction-service:8092
+      REDIS_URL: "redis://default:${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}@redis:6379/0"
     expose:
       - "8080"
     depends_on:
@@ -101,13 +195,19 @@ services:
         condition: service_healthy
       security-service:
         condition: service_healthy
+      market-service:
+        condition: service_healthy
+      prediction-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        - "fetch('http://127.0.0.1:8080/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 5s
       retries: 3
@@ -128,3 +228,5 @@ volumes:
   monero-models:
   monero-results:
   users-db-data:
+  mongodb-data:
+  redis-data:
