@@ -14,6 +14,9 @@ Microservices must not access another service's database directly.
 - `market-service` owns the `market_service` database and `candles` collection.
   Its database account is restricted to that database. Upserts use a unique
   `(symbol, date)` index.
+- `market-service` also owns the `intraday_candles` collection with a unique
+  `(symbol, interval, timestamp)` index. A Kraken adapter supplies validated
+  1-minute/5-minute XMR/USD spot candles; only completed UTC candles are stored.
 - `prediction-service` owns the separate `prediction_service` database and
   stores the validated Monero prediction response with its request parameters
   and UTC recording time.
@@ -29,6 +32,8 @@ Microservices must not access another service's database directly.
 
 - Market OHLCV and prediction history persist in separate MongoDB databases.
 - Daily market data is not transformed into fabricated intraday candles.
+  Intraday UI windows are sourced from Kraken and clearly labeled; provider
+  failures are shown rather than replaced with daily data.
 - Local Compass access uses the MongoDB administrator credentials from the
   ignored `.env`; services use separate restricted accounts.
 - Rate limits are configurable in code and need production traffic tuning.
@@ -39,3 +44,6 @@ Market and prediction service contract tests pass. A Docker-backed check
 synchronized live daily Monero candles into `market_service` and verified the
 documents there. Gateway tests cover service routing, 429/`Retry-After`,
 dependency readiness, and Redis fail-closed behavior.
+
+Intraday provider and persistence behavior is tested with a mocked Kraken
+response; no external request is needed to run the test suite.

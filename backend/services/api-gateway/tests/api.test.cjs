@@ -63,6 +63,11 @@ before(async () => {
             response.end(JSON.stringify({ source: "market-service" }));
             return;
         }
+        if (request.url === "/api/v1/market/intraday?interval=1m") {
+            response.writeHead(200, { "content-type": "application/json" });
+            response.end(JSON.stringify({ source: "kraken-market-service" }));
+            return;
+        }
         response.writeHead(404);
         response.end();
     });
@@ -151,6 +156,14 @@ test("routes market requests to the market service", async () => {
     const response = await fetch(`${gatewayUrl}/api/v1/market`);
     assert.equal(response.status, 206);
     assert.deepEqual(await response.json(), { source: "market-service" });
+});
+
+test("routes intraday market intervals through to the market service", async () => {
+    const response = await fetch(
+        `${gatewayUrl}/api/v1/market/intraday?interval=1m`
+    );
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { source: "kraken-market-service" });
 });
 
 test("routes prediction requests to the prediction service", async () => {

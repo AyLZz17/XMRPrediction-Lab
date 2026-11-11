@@ -1,8 +1,20 @@
 import type { Collection, Db, Document } from "mongodb";
-import type { MarketResponse, OhlcvRow } from "./contracts";
+import type {
+    IntradayCandle,
+    IntradayInterval,
+    MarketResponse,
+    OhlcvRow
+} from "./contracts";
 
 interface StoredCandle extends OhlcvRow, Document {
     symbol: string;
+    ingestedAt: Date;
+}
+
+interface StoredIntradayCandle extends IntradayCandle, Document {
+    symbol: string;
+    interval: IntradayInterval;
+    source: "Kraken";
     ingestedAt: Date;
 }
 
@@ -11,17 +23,37 @@ export interface MarketStore {
     ping(): Promise<void>;
     upsert(symbol: string, rows: OhlcvRow[]): Promise<void>;
     listLatest(symbol: string, limit: number): Promise<OhlcvRow[]>;
+    upsertIntraday(
+        symbol: string,
+        interval: IntradayInterval,
+        rows: IntradayCandle[]
+    ): Promise<void>;
+    listIntraday(
+        symbol: string,
+        interval: IntradayInterval,
+        windowStart: string,
+        windowEnd: string
+    ): Promise<IntradayCandle[]>;
 }
 
 export class MongoMarketStore implements MarketStore {
     constructor(
         private readonly database: Db,
-        private readonly candles: Collection<StoredCandle>
+        private readonly candles: Collection<StoredCandle>,
+        private readonly intradayCandles: Collection<StoredIntradayCandle>
     ) {
     }
 
     async ensureIndexes(): Promise<void> {
         await this.candles.createIndex({ symbol: 1, date: 1 }, { unique: true });
+        await this.intradayCandles.createIndex(
+            { symbol: 1, interval: 1, timestamp: 1 },
+            { unique: true }
+        );
+        await this.intradayCandles.createIndex(
+            { ingestedAt: 1 },
+            { expireAfterSeconds: 24 * 60 * 60 }
+        );
     }
 
     async ping(): Promise<void> {
@@ -59,6 +91,48 @@ export class MongoMarketStore implements MarketStore {
             })
             .toArray();
         return rows.reverse();
+    }
+
+    async upsertIntraday(
+        symbol: string,
+        interval: IntradayInterval,
+        rows: IntradayCandle[]
+    ): Promise<void> {
+        if (rows.length === 0) return;
+
+        await this.intradayCandles.bulkWrite(rows.map(row => ({
+            updateOne: {
+                filter: { symbol, interval, timestamp: row.timestamp },
+                update: {
+                    $set: { ...row, symbol, interval, source: "Kraken", ingestedAt: new Date() }
+                },
+                upsert: true
+            }
+        })), { ordered: false });
+    }
+
+    async listIntraday(
+        symbol: string,
+        interval: IntradayInterval,
+        windowStart: string,
+        windowEnd: string
+    ): Promise<IntradayCandle[]> {
+        return this.intradayCandles.find({
+            symbol,
+            interval,
+            timestamp: { $gte: windowStart, $lt: windowEnd }
+        })
+            .sort({ timestamp: 1 })
+            .project<IntradayCandle>({
+                _id: 0,
+                timestamp: 1,
+                open: 1,
+                high: 1,
+                low: 1,
+                close: 1,
+                volume: 1
+            })
+            .toArray();
     }
 }
 

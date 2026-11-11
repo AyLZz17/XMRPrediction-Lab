@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "@frontend-services/http";
 import { currentUser, signOut, type AuthUser } from "@frontend-services/auth";
-import { getMarket, refreshMarket, type MarketSnapshot } from "@frontend-services/market";
+import {
+    getIntradayMarket,
+    getMarket,
+    refreshMarket,
+    type IntradayInterval,
+    type IntradayMarketSnapshot,
+    type MarketSnapshot
+} from "@frontend-services/market";
 import {
     getBenchmark,
     modelIds,
@@ -14,6 +21,7 @@ import {
     type Prediction
 } from "@frontend-services/predictions";
 import { MarketChart } from "./MarketChart";
+import { IntradayChart } from "./IntradayChart";
 import { ModelChart } from "./ModelChart";
 import { PredictionChart } from "./PredictionChart";
 import { PreferenceControls } from "./PreferenceControls";
@@ -27,6 +35,7 @@ const modelNames: Record<ModelId, string> = {
     gru: "GRU"
 };
 const ranges = [1, 5, 30, 90, 180, 365] as const;
+type ChartPeriod = "daily" | IntradayInterval;
 
 export function Dashboard() {
     const { language, localTimeZone, t } = usePreferences();
@@ -39,6 +48,11 @@ export function Dashboard() {
     const [selectedModel, setSelectedModel] = useState<ModelId>("naive");
     const [metric, setMetric] = useState<MetricId>("mae");
     const [range, setRange] = useState<number>(365);
+    const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("daily");
+    const [intradayRefreshKey, setIntradayRefreshKey] = useState(0);
+    const [intraday, setIntraday] = useState<IntradayMarketSnapshot | null>(null);
+    const [intradayError, setIntradayError] = useState("");
+    const [intradayLoading, setIntradayLoading] = useState(false);
     const [chartType, setChartType] = useState<"candles" | "line">("candles");
     const [showSma, setShowSma] = useState(false);
     const [showVolumeSma, setShowVolumeSma] = useState(false);
@@ -94,6 +108,44 @@ export function Dashboard() {
         void initialize();
         return () => { active = false; };
     }, []);
+
+    useEffect(() => {
+        if (chartPeriod === "daily") return;
+        const interval: IntradayInterval = chartPeriod;
+
+        let active = true;
+        let requestPending = false;
+        let hasLoaded = false;
+        let currentRequest: AbortController | null = null;
+        async function loadIntraday() {
+            if (requestPending) return;
+            requestPending = true;
+            if (!hasLoaded && active) setIntradayLoading(true);
+            currentRequest = new AbortController();
+            try {
+                const snapshot = await getIntradayMarket(interval, currentRequest.signal);
+                if (!active) return;
+                setIntraday(snapshot);
+                setIntradayError("");
+                hasLoaded = true;
+            } catch (error) {
+                if (!active) return;
+                console.error("Could not load intraday market data", error);
+                setIntradayError(apiErrorMessage(error, message.current));
+            } finally {
+                requestPending = false;
+                if (active) setIntradayLoading(false);
+            }
+        }
+
+        void loadIntraday();
+        const timer = window.setInterval(() => { void loadIntraday(); }, 30_000);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+            currentRequest?.abort();
+        };
+    }, [chartPeriod, intradayRefreshKey]);
 
     const modelMetrics = benchmark?.models ?? [];
     const selectedMetrics = modelMetrics.find(item => item.id === selectedModel);
@@ -308,12 +360,22 @@ export function Dashboard() {
                         <section className="panel chart-panel market-panel" id="market">
                             <div className="panel-header chart-header">
                                 <div>
-                                    <span className="section-kicker">{t("dailyMarket")}</span>
+                                    <span className="section-kicker">
+                                        {chartPeriod === "daily" ? t("dailyMarket") : t("intradayMarket")}
+                                    </span>
                                     <div className="price-line">
-                                        <strong>{latest ? formatMoney(latest.close, locale) : "—"}</strong>
-                                        <span className={priceChangeClass(market?.change_pct)}>
-                                            {market ? formatPercent(market.change_pct, locale) : "—"}
-                                        </span>
+                                        <strong>
+                                            {chartPeriod === "daily"
+                                                ? latest ? formatMoney(latest.close, locale) : "—"
+                                                : intraday?.rows.length
+                                                    ? formatMoney(intraday.rows[intraday.rows.length - 1].close, locale)
+                                                    : "—"}
+                                        </strong>
+                                        {chartPeriod === "daily" && (
+                                            <span className={priceChangeClass(market?.change_pct)}>
+                                                {market ? formatPercent(market.change_pct, locale) : "—"}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="chart-controls" role="group" aria-label={t("chartType")}>
@@ -324,11 +386,52 @@ export function Dashboard() {
                             <div className="chart-toolbar">
                                 <div className="legend">
                                     <span><i className="legend-real"></i>{t("price")}</span>
-                                    {showSma && <span><i className="legend-sma"></i>{t("sma9")}</span>}
-                                    {showVolumeSma && <span><i className="legend-volume-sma"></i>{t("volumeSma9")}</span>}
+                                    {chartPeriod === "daily" && showSma && <span><i className="legend-sma"></i>{t("sma9")}</span>}
+                                    {chartPeriod === "daily" && showVolumeSma && <span><i className="legend-volume-sma"></i>{t("volumeSma9")}</span>}
+                                    {chartPeriod !== "daily" && <span>{t("volume")}</span>}
                                 </div>
                                 <div className="chart-toolbar-actions">
-                                    <div className="range-controls" role="group" aria-label={t("dailyRange")}>
+                                    <div className="range-controls" role="group" aria-label={t("chartWindow")}>
+                                        <button
+                                            className={chartPeriod === "daily" ? "active" : ""}
+                                            type="button"
+                                            aria-pressed={chartPeriod === "daily"}
+                                            onClick={() => {
+                                                setIntradayLoading(false);
+                                                setChartPeriod("daily");
+                                            }}
+                                        >
+                                            {t("daily")}
+                                        </button>
+                                        <button
+                                            className={chartPeriod === "5m" ? "active" : ""}
+                                            type="button"
+                                            aria-pressed={chartPeriod === "5m"}
+                                            onClick={() => {
+                                                setIntraday(null);
+                                                setIntradayError("");
+                                                setChartPeriod("5m");
+                                                setIntradayRefreshKey(value => value + 1);
+                                            }}
+                                        >
+                                            {t("last12Hours")}
+                                        </button>
+                                        <button
+                                            className={chartPeriod === "1m" ? "active" : ""}
+                                            type="button"
+                                            aria-pressed={chartPeriod === "1m"}
+                                            onClick={() => {
+                                                setIntraday(null);
+                                                setIntradayError("");
+                                                setChartPeriod("1m");
+                                                setIntradayRefreshKey(value => value + 1);
+                                            }}
+                                        >
+                                            {t("last10Minutes")}
+                                        </button>
+                                    </div>
+                                    {chartPeriod === "daily" && (
+                                        <div className="range-controls" role="group" aria-label={t("dailyRange")}>
                                         {ranges.map(value => (
                                             <button
                                                 key={value}
@@ -340,35 +443,63 @@ export function Dashboard() {
                                                 {rangeLabel(value)}
                                             </button>
                                         ))}
-                                    </div>
-                                    <div className="indicator-controls" role="group" aria-label={t("technicalIndicators")}>
-                                        <button className={showSma ? "active" : ""} type="button" aria-pressed={showSma} onClick={() => setShowSma(value => !value)}>SMA 9</button>
-                                        <button className={showVolumeSma ? "active" : ""} type="button" aria-pressed={showVolumeSma} onClick={() => setShowVolumeSma(value => !value)}>Vol. SMA 9</button>
-                                    </div>
+                                        </div>
+                                    )}
+                                    {chartPeriod === "daily" && (
+                                        <div className="indicator-controls" role="group" aria-label={t("technicalIndicators")}>
+                                            <button className={showSma ? "active" : ""} type="button" aria-pressed={showSma} onClick={() => setShowSma(value => !value)}>SMA 9</button>
+                                            <button className={showVolumeSma ? "active" : ""} type="button" aria-pressed={showVolumeSma} onClick={() => setShowVolumeSma(value => !value)}>Vol. SMA 9</button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            {market ? (
-                                <MarketChart
-                                    rows={market.rows}
-                                    range={range}
-                                    chartType={chartType}
-                                    showSma={showSma}
-                                    showVolumeSma={showVolumeSma}
-                                    locale={locale}
-                                    description={marketChartDescription(market, locale)}
-                                />
-                            ) : (
-                                <div className="chart-stage chart-empty" role="status">{marketError || t("loadingMarket")}</div>
-                            )}
+                            {chartPeriod === "daily"
+                                ? market ? (
+                                    <MarketChart
+                                        rows={market.rows}
+                                        range={range}
+                                        chartType={chartType}
+                                        showSma={showSma}
+                                        showVolumeSma={showVolumeSma}
+                                        locale={locale}
+                                        description={marketChartDescription(market, locale)}
+                                    />
+                                ) : (
+                                    <div className="chart-stage chart-empty" role="status">{marketError || t("loadingMarket")}</div>
+                                )
+                                : intraday ? (
+                                    <IntradayChart
+                                        rows={intraday.rows}
+                                        interval={intraday.interval}
+                                        chartType={chartType}
+                                        locale={locale}
+                                        source={t("krakenSource")}
+                                        description={`${t("intradayMarket")} · ${intraday.interval} · ${intraday.rows.length} ${t("observations")}`}
+                                    />
+                                ) : (
+                                    <div className="chart-stage chart-empty" role="status">
+                                        {intradayError || (intradayLoading
+                                            ? t("loadingIntraday")
+                                            : t("noIntradayCandles"))}
+                                    </div>
+                                )}
                             <div className="chart-footnote">
                                 <span aria-live="polite">
-                                    {marketError || (market
-                                        ? `${t("loadedAt")} ${formattedUpdatedAt} · ${market.rows.length} ${t("observations")}`
-                                        : t("loadingMarket"))}
+                                    {chartPeriod === "daily"
+                                        ? marketError || (market
+                                            ? `${t("loadedAt")} ${formattedUpdatedAt} · ${market.rows.length} ${t("observations")}`
+                                            : t("loadingMarket"))
+                                        : intradayError || (intraday
+                                            ? `${t("krakenSource")} · ${intraday.interval} · ${t("loadedAt")} ${formatLocalDateTime(intraday.updated_at, locale)} · ${intraday.rows.length} ${t("observations")}`
+                                            : t("loadingIntraday"))}
                                 </span>
-                                <span title={localTimeZone}>{t("interval")} · {localTimeZone}</span>
+                                <span title={localTimeZone}>
+                                    {chartPeriod === "daily" ? t("interval") : `${t("interval")} · ${intraday?.interval ?? chartPeriod}`} · {localTimeZone}
+                                </span>
                             </div>
-                            <p className="daily-data-note">{t("dailyOnly")}</p>
+                            <p className="daily-data-note">
+                                {chartPeriod === "daily" ? t("dailySourceNote") : t("intradaySourceNote")}
+                            </p>
                         </section>
 
                         <section className="prediction-grid" id="prediction">

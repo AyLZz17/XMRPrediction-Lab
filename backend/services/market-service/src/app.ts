@@ -4,14 +4,29 @@ import {
     type ObservabilityLogger
 } from "@aylzz/shared-observability";
 import { z } from "zod";
-import { marketResponseSchema, type MarketResponse } from "./contracts";
+import {
+    intradayIntervalSchema,
+    intradayMarketResponseSchema,
+    marketResponseSchema,
+    type IntradayMarketResponse,
+    type MarketResponse
+} from "./contracts";
+import {
+    createKrakenIntradayProvider,
+    KrakenProviderError,
+    type IntradayProvider
+} from "./kraken";
 import { marketResponseFromStoredRows, type MarketStore } from "./store";
 
 const requestTimeoutMs = 30_000;
 const refreshTimeoutMs = 60 * 60 * 1_000;
 const limitSchema = z.coerce.number().int().min(1).max(3650);
 
-export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
+export function createApp(
+    moneroApiBaseUrl: string,
+    store: MarketStore,
+    intradayProvider: IntradayProvider = createKrakenIntradayProvider()
+) {
     const moneroApi = new URL(moneroApiBaseUrl);
     if (!["http:", "https:"].includes(moneroApi.protocol)) {
         throw new Error("MONERO_API_BASE_URL must use HTTP or HTTPS");
@@ -21,7 +36,8 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
     app.disable("x-powered-by");
     const logger = attachObservability(app, "market-service", (_method, path) => {
         if (path === "/health" || path === "/ready"
-            || path === "/api/v1/market" || path === "/api/v1/market/refresh") {
+            || path === "/api/v1/market" || path === "/api/v1/market/refresh"
+            || path === "/api/v1/market/intraday") {
             return path;
         }
         return "unmatched";
@@ -79,6 +95,53 @@ export function createApp(moneroApiBaseUrl: string, store: MarketStore) {
             response.status(200).json(marketResponseFromStoredRows(payload, storedRows));
         } catch (error) {
             logger.logError("Could not persist market data", error);
+            response.status(503).json({ error: "market_storage_unavailable" });
+        }
+    });
+
+    app.get("/api/v1/market/intraday", async (request, response) => {
+        const parsedInterval = intradayIntervalSchema.safeParse(request.query.interval);
+        if (!parsedInterval.success) {
+            response.status(400).json({
+                error: "invalid_interval",
+                allowed: intradayIntervalSchema.options
+            });
+            return;
+        }
+
+        let snapshot;
+        try {
+            snapshot = await intradayProvider(parsedInterval.data);
+        } catch (error) {
+            logger.logError("Could not retrieve intraday candles from Kraken", error);
+            if (error instanceof KrakenProviderError && error.retryAfterSeconds) {
+                response.setHeader("Retry-After", String(error.retryAfterSeconds));
+            }
+            response.status(503).json({ error: "intraday_provider_unavailable" });
+            return;
+        }
+
+        try {
+            await store.upsertIntraday("XMR-USD", snapshot.interval, snapshot.rows);
+            const rows = await store.listIntraday(
+                "XMR-USD",
+                snapshot.interval,
+                snapshot.window_start,
+                snapshot.window_end
+            );
+            const parsed = intradayMarketResponseSchema.safeParse({
+                symbol: "XMR-USD",
+                ...snapshot,
+                rows
+            } satisfies IntradayMarketResponse);
+            if (!parsed.success) {
+                logger.logError("Stored intraday market data did not match its contract");
+                response.status(503).json({ error: "intraday_storage_unavailable" });
+                return;
+            }
+            response.status(200).json(parsed.data);
+        } catch (error) {
+            logger.logError("Could not persist intraday market data", error);
             response.status(503).json({ error: "market_storage_unavailable" });
         }
     });

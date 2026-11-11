@@ -19,7 +19,11 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 async function start(): Promise<void> {
     await mongoClient.connect();
     const database = mongoClient.db("market_service");
-    const store = new MongoMarketStore(database, database.collection("candles"));
+    const store = new MongoMarketStore(
+        database,
+        database.collection("candles"),
+        database.collection("intraday_candles")
+    );
     await store.ensureIndexes();
 
     const server = createApp(moneroApiBaseUrl, store).listen(port, "0.0.0.0", () => {
