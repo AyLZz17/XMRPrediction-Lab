@@ -1,7 +1,8 @@
 services:
   monero-api:
+    image: cryptostat-project-monero-api
     build:
-      context: ./Monero
+      context: ./backend/services/ml-service
     environment:
       PYTHONUNBUFFERED: "1"
       TF_CPP_MIN_LOG_LEVEL: "2"
@@ -51,10 +52,12 @@ services:
       POSTGRES_DB: "${USERS_DB_NAME:-aylzz_users}"
       POSTGRES_USER: "${USERS_DB_USER:-aylzz_app}"
       POSTGRES_PASSWORD: "${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}"
+      SECURITY_DB_NAME: "${SECURITY_DB_NAME:-aylzz_identity}"
       USERS_DB_BACKUP_USER: "${USERS_DB_BACKUP_USER:-}"
       USERS_DB_BACKUP_PASSWORD: "${USERS_DB_BACKUP_PASSWORD:-}"
     volumes:
       - users-db-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-security-db.sh:/docker-entrypoint-initdb.d/10-create-security-database.sh:ro
       - ./infra/postgres/init-backup-user.sh:/docker-entrypoint-initdb.d/20-create-backup-user.sh:ro
     ports:
       - "127.0.0.1:5433:5432"
@@ -70,7 +73,7 @@ services:
       context: ./backend/services/security-service
     environment:
       SERVER_PORT: "8081"
-      USERS_DB_URL: "jdbc:postgresql://users-db:5432/${USERS_DB_NAME:-aylzz_users}"
+      USERS_DB_URL: "jdbc:postgresql://users-db:5432/${SECURITY_DB_NAME:-aylzz_identity}"
       USERS_DB_USER: "${USERS_DB_USER:-aylzz_app}"
       USERS_DB_PASSWORD: "${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}"
       JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET in .env}"

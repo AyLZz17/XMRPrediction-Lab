@@ -2,7 +2,7 @@
 
 The optional `backup-service` protects the PostgreSQL user database and the
 separate `market_service` and `prediction_service` MongoDB databases. Redis is
-ephemeral and is not included. The Monero data/model volumes are outside this
+ephemeral and is not included. The ML service data/model volumes are outside this
 database backup workflow.
 
 ## Configure and start

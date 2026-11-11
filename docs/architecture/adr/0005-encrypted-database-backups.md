@@ -28,7 +28,7 @@ exposed through the frontend or API Gateway to perform maintenance exports.
   recipient in external environment configuration. Leave the service opt-in
   until the destination account and credentials are designated.
 - Exclude Redis because it stores rate-limit counters and temporary state.
-  Monero data/model volumes are not part of this database backup job.
+  ML service data/model volumes are not part of this database backup job.
 
 ## Backup threat controls
 

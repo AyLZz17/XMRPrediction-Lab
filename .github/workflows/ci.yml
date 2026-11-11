@@ -140,7 +140,7 @@ jobs:
           exit-code: "1"
 
   containers:
-    name: Docker image builds and Monero image tests
+    name: Docker image builds and ML service tests
     runs-on: ubuntu-latest
     needs:
       - node-services
@@ -155,5 +155,5 @@ jobs:
         run: docker compose --env-file .env.example build
       - name: Build the optional backup service
         run: docker compose --env-file .env.example --profile backup build backup-service
-      - name: Run Monero tests in the production image
+      - name: Run ML service tests in the production image
         run: docker compose --env-file .env.example run --rm --no-deps --entrypoint python monero-api -m pytest -q tests

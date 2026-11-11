@@ -6,7 +6,7 @@
 ## Context
 
 The architecture assigns market time series and prediction history to
-MongoDB while keeping the existing Monero implementation out of the rewrite.
+MongoDB while keeping the existing ML service implementation out of the rewrite.
 Microservices must not access another service's database directly.
 
 ## Decision
@@ -18,10 +18,11 @@ Microservices must not access another service's database directly.
   `(symbol, interval, timestamp)` index. A Kraken adapter supplies validated
   1-minute/5-minute XMR/USD spot candles; only completed UTC candles are stored.
 - `prediction-service` owns the separate `prediction_service` database and
-  stores the validated Monero prediction response with its request parameters
-  and UTC recording time.
-- Both services call the existing Monero API through HTTP adapters and preserve
-  the established browser API contract. `Monero/` remains unchanged.
+  stores the validated ML service prediction response with its request
+  parameters and UTC recording time.
+- Both services call the existing API in `backend/services/ml-service/` through
+  HTTP adapters and preserve the established browser API contract. Its
+  implementation and runtime behavior remain unchanged by the directory move.
 - Redis stores gateway request counters. A shared limit is 120 requests/minute;
   authentication routes also have a 10 requests/minute limit and a five-minute
   block. Redis failure is fail-closed (HTTP 503).

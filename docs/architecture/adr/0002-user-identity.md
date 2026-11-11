@@ -6,15 +6,16 @@
 ## Context
 
 The portal needs real registration and login while the existing browser UI and
-the `Monero/` model API remain available during migration. User identity must
-be isolated from market and prediction storage.
+the `backend/services/ml-service/` model API remain available during
+migration. User identity must be isolated from market and prediction storage.
 
 ## Decision
 
 - Add a Java 21 / Spring Boot service under
   `backend/services/security-service`.
 - Persist normalized email addresses and BCrypt password hashes in a dedicated
-  PostgreSQL database. Manage schema changes with Flyway.
+  PostgreSQL database named by `SECURITY_DB_NAME` (default `aylzz_identity`).
+  Manage schema changes with Flyway.
 - Issue 15-minute HMAC-signed tokens in an `HttpOnly`, `SameSite=Strict`
   cookie scoped to `/api`. The cookie's `Secure` attribute is configurable and
   must be enabled behind HTTPS.

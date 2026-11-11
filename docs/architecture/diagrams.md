@@ -15,7 +15,7 @@ flowchart LR
     postgres["PostgreSQL<br/>users and auth audit"]
     market["Market service<br/>Node.js + TypeScript"]
     marketMongo["MongoDB<br/>market_service"]
-    monero["Monero API<br/>unchanged daily data and models"]
+    mlService["Ml-Service API<br/>existing daily data and models"]
     kraken["Kraken public OHLC<br/>XMR/USD spot"]
     predictions["Prediction service<br/>Node.js + TypeScript"]
     predictionMongo["MongoDB<br/>prediction_service"]
@@ -30,12 +30,12 @@ flowchart LR
     security --> postgres
     gateway -->|"/api/v1/market/*"| market
     market --> marketMongo
-    market -->|"daily OHLCV"| monero
+    market -->|"daily OHLCV"| mlService
     market -->|"1m and 5m candles"| kraken
     gateway -->|"/api/v1/predictions/*"| predictions
     predictions --> predictionMongo
-    predictions -->|"prediction request"| monero
-    gateway -->|"other /api/* routes"| monero
+    predictions -->|"prediction request"| mlService
+    gateway -->|"other /api/* routes"| mlService
     backup -->|"read-only dumps"| postgres
     backup -->|"read-only dumps"| marketMongo
     backup -->|"read-only dumps"| predictionMongo
@@ -112,7 +112,7 @@ contracts, not relational tables.
 
 ```mermaid
 flowchart TD
-    daily["Monero API daily OHLCV"]
+    daily["Ml-Service API daily OHLCV"]
     kraken["Kraken OHLC API"]
     dailyAdapter["Daily Monero adapter"]
     intradayAdapter["Kraken intraday adapter"]
@@ -150,7 +150,7 @@ sequenceDiagram
     participant Gateway as "API Gateway"
     participant Redis
     participant Prediction as "Prediction service"
-    participant Monero as "Monero API"
+    participant Monero as "Ml-Service API"
     participant Mongo as "prediction_service MongoDB"
 
     Researcher->>UI: Select model and request prediction

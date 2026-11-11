@@ -11,7 +11,7 @@ Browser -> Nginx frontend -> Node.js/TypeScript API Gateway
                                |                                  |-> Monero daily data
                                |                                  `-> Kraken intraday
                                |-> /api/v1/predictions/* -> prediction-service -> MongoDB
-                               `-> other /api/* -> Monero API (existing)
+                               `-> other /api/* -> Ml-Service API (existing)
 ```
 
 The gateway exposes `GET /health` for process health and `GET /ready` for

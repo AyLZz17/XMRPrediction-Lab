@@ -22,8 +22,8 @@ the Compose network and must not expose credentials or request bodies.
   passwords, tokens, request bodies, or source IPs.
 - Add an opt-in Prometheus Compose profile. Bind its UI to host loopback and
   keep service metrics endpoints private to the Compose network.
-- Leave `Monero/` unchanged. Defer alert rules, dashboards, and external log
-  aggregation to a deployment-specific phase.
+- Leave `backend/services/ml-service/` unchanged. Defer alert rules, dashboards,
+  and external log aggregation to a deployment-specific phase.
 
 ## Consequences
 

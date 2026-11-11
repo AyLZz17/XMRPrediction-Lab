@@ -1,6 +1,6 @@
 # Market service
 
-This Node.js/TypeScript service adapts the existing Monero API and owns
+This Node.js/TypeScript service adapts the existing Ml-Service API and owns
 `market_service` in MongoDB. `GET /api/v1/market` and
 `POST /api/v1/market/refresh` synchronize returned OHLCV rows into the
 `candles` collection (unique `symbol` + `date` index) and serve the stored

@@ -10,9 +10,12 @@ npm ci
 npm run dev
 ```
 
-The Docker build context is the repository root because the app imports its
-shared API adapters from `services-frontend/` and reuses the established
-stylesheet at `frontend/css/style.css`.
+The typed API adapters are an integral part of `frontend/`, not a separately
+deployed service. Their architectural location is
+`frontend/services-frontend/`; in the current checkout, the directory remains
+at the repository root pending resolution of a Windows permission that blocks
+its move. The Docker build context is the repository root so the app can share
+those adapters and reuse the established stylesheet at `frontend/css/style.css`.
 
 The former HTML/JavaScript pages remain available under `/legacy/pages/` while
 the React routes are validated. Login and registration use the Spring identity

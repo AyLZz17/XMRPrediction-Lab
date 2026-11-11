@@ -17,7 +17,10 @@ chart, and research behavior.
   same-origin entry point and forwards `/api/*` to the API Gateway.
 - Keep the prior HTML, CSS, JavaScript, and assets accessible under `/legacy/`
   until route-by-route equivalence is validated.
-- Put typed, runtime-validated browser API adapters in `services-frontend/`.
+- Keep typed, runtime-validated browser API adapters as an integral frontend
+  module in `frontend/services-frontend/`, not as an independently deployed
+  service. The current checkout still has the directory at the repository root;
+  its move is pending resolution of a Windows directory permission.
 - Authenticate only through the Spring identity endpoints and HttpOnly cookie;
   never keep credentials or session tokens in local storage.
 - Provide Spanish/English UI, keyboard-visible focus, text-size and contrast
@@ -30,8 +33,8 @@ chart, and research behavior.
 - Next static output is deployed by Nginx without exposing internal service
   addresses or adding a second frontend runtime.
 - The legacy implementation is retained for comparison and rollback.
-- The app build context is the repository root so it can share
-  `services-frontend/` without copying adapter logic.
+- The app build context is the repository root so it can share frontend
+  modules and legacy assets without copying adapter logic.
 - Existing layout styles are reused; the migrated dashboard keeps the
   navigation, OHLCV chart, prediction, benchmark, methodology, and disclaimer
   surfaces.
