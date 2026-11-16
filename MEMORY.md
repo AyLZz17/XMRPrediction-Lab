@@ -35,3 +35,4 @@
 - Backtest independiente con split cronológico 80/20: cierre persistencia MAE 9,685 USD; ml-service permanece intacto.
 - La página «Detalles extensos» ahora renderiza los cuatro informes completos con tablas, figuras y enlaces de descarga; assets copiados a frontend/next-app/public/analisis para el export estático.
 - Next typecheck/build pasó; la imagen Docker no pudo construirse porque el daemon Docker Desktop no estaba disponible en la sesión.
+- 2026-11-16: rebuilt `xmrprediction-lab-frontend:latest` from commit ff3111b and ran `docker compose up -d`; frontend is healthy on 8081. Dashboard, PNG, CSV, and Markdown report endpoints returned HTTP 200.
