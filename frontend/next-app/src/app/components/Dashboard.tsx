@@ -25,6 +25,7 @@ import { IntradayChart } from "./IntradayChart";
 import { ModelChart } from "./ModelChart";
 import { PredictionChart } from "./PredictionChart";
 import { PreferenceControls } from "./PreferenceControls";
+import { ExtendedAnalysis } from "./ExtendedAnalysis";
 import { apiErrorMessage, usePreferences } from "../preferences";
 
 const modelNames: Record<ModelId, string> = {
@@ -584,67 +585,7 @@ export function Dashboard() {
                             <Stat index="04" label={t("evaluatedModels")} value={String(modelMetrics.length)} caption={t("historicalShare")} />
                         </section>
 
-                        <section className="extended-analysis panel" id="analisis-extenso" aria-labelledby="extended-analysis-title">
-                            <div className="section-heading standalone">
-                                <div>
-                                    <span className="section-kicker">{language === "es" ? "INVESTIGACIÓN · XMR/USD" : "RESEARCH · XMR/USD"}</span>
-                                    <h2 id="extended-analysis-title">{language === "es" ? "Detalles extensos del análisis" : "Extended analysis details"}</h2>
-                                </div>
-                                <p>{language === "es"
-                                    ? "Cuatro etapas conectan los hallazgos históricos con sus explicaciones, proyecciones y decisiones posibles."
-                                    : "Four stages connect historical findings with explanations, forecasts and possible decisions."}</p>
-                            </div>
-                            <div className="analysis-scope">
-                                <span>{language === "es" ? "BASE" : "DATASET"}<strong>3.278 {language === "es" ? "observaciones" : "observations"}</strong></span>
-                                <span>{language === "es" ? "PERIODO" : "PERIOD"}<strong>09 nov 2017 — 31 oct 2026</strong></span>
-                                <span>{language === "es" ? "FRECUENCIA" : "FREQUENCY"}<strong>{language === "es" ? "Diaria · UTC" : "Daily · UTC"}</strong></span>
-                            </div>
-                            <div className="analysis-stage-grid">
-                                <article className="analysis-stage">
-                                    <span className="analysis-stage-number">01 / DESCRIPTIVO</span>
-                                    <h3>{language === "es" ? "¿Qué ocurrió?" : "What happened?"}</h3>
-                                    <ul>
-                                        <li>{language === "es" ? "El cierre pasó de 120,78 USD a 598,60 USD (+395,6%) en el periodo." : "The close moved from $120.78 to $598.60 (+395.6%) over the period."}</li>
-                                        <li>{language === "es" ? "La desviación estándar del retorno diario fue 4,68%; el 5% de días más extremos superó 9,65% en valor absoluto." : "Daily return standard deviation was 4.68%; the most extreme 5% of days exceeded 9.65% in absolute value."}</li>
-                                        <li>{language === "es" ? "Por día de semana, el retorno medio varió entre −0,27% (jueves) y +0,54% (sábado); por mes no aparece diferencia clara." : "Mean return by weekday ranged from −0.27% (Thursday) to +0.54% (Saturday); monthly differences are unclear."}</li>
-                                    </ul>
-                                </article>
-                                <article className="analysis-stage">
-                                    <span className="analysis-stage-number">02 / DIAGNÓSTICO</span>
-                                    <h3>{language === "es" ? "¿Qué podría explicarlo?" : "What may explain it?"}</h3>
-                                    <p>{language === "es"
-                                        ? "El volumen y el movimiento absoluto del precio se asociaron positivamente (Spearman ρ = 0,25; p < 0,001). Los días del decil superior de volumen tuvieron movimientos absolutos medios de 5,10%, frente a 2,92% en los demás. Es una asociación exploratoria, no causal."
-                                        : "Volume and absolute price movement were positively associated (Spearman ρ = 0.25; p < 0.001). Days in the top volume decile had mean absolute moves of 5.10%, versus 2.92% on other days. This is exploratory association, not causation."}</p>
-                                    <p>{language === "es"
-                                        ? "Las distribuciones por día de semana difieren (ANOVA p = 0,037; Kruskal–Wallis p = 0,007), antes de ajustar comparaciones. No se encontró diferencia mensual (p = 0,855). La magnitud semanal es pequeña y las fechas no aportan contexto externo para explicar causas de mercado."
-                                        : "Weekday distributions differ (ANOVA p = 0.037; Kruskal–Wallis p = 0.007), before adjusting comparisons. No monthly difference was found (p = 0.855). The weekday effect is small and dates alone do not provide external context to explain market causes."}</p>
-                                </article>
-                                <article className="analysis-stage">
-                                    <span className="analysis-stage-number">03 / PREDICTIVO</span>
-                                    <h3>{language === "es" ? "¿Qué anticipa la validación?" : "What does validation anticipate?"}</h3>
-                                    <p>{language === "es"
-                                        ? "La evaluación cronológica existente (20% final, 656 días) no respalda que una red neuronal mejore la persistencia: su MAE fue 9,69 USD, frente a 9,99 USD para LSTM y 10,11 USD para GRU. El modelo de media móvil tuvo MAE 15,20 USD."
-                                        : "The existing chronological evaluation (final 20%, 656 days) does not support neural networks improving on persistence: MAE was $9.69, versus $9.99 for LSTM and $10.11 for GRU. The moving average model had $15.20 MAE."}</p>
-                                    <p>{language === "es"
-                                        ? "En el holdout, el rango diario MA7 tuvo MAE 2,25 puntos porcentuales y el log-volumen MA7 0,20. El retorno por día (media histórica) tuvo MAE 2,66 puntos; por mes calendario (22 meses), MAE 0,43 frente a 0,43 de la media global. Las categorías no aportaron mejora útil."
-                                        : "On the holdout, daily range MA7 had 2.25 percentage-point MAE and log-volume MA7 had 0.20. Weekday return (historical mean) had 2.66-point MAE; calendar-month return (22 months) had 0.43 versus 0.43 for the global mean. Categories added no useful improvement."}</p>
-                                </article>
-                                <article className="analysis-stage">
-                                    <span className="analysis-stage-number">04 / PRESCRIPTIVO</span>
-                                    <h3>{language === "es" ? "¿Qué conviene hacer?" : "What should we do?"}</h3>
-                                    <ul>
-                                        <li>{language === "es" ? "Usar persistencia como referencia mínima y exigir una mejora estable fuera de muestra antes de cambiar el modelo." : "Use persistence as the minimum benchmark and require stable out-of-sample improvement before changing models."}</li>
-                                        <li>{language === "es" ? "Acompañar el precio con bandas de riesgo y monitoreo de volatilidad/volumen; evitar inferir dirección del precio a partir del volumen." : "Pair price with risk bands and volatility/volume monitoring; do not infer price direction from volume."}</li>
-                                        <li>{language === "es" ? "Revisar datos y backtest por ventanas antes de decisiones; no operar con efectos de calendario no confirmados." : "Review data and rolling backtests before decisions; do not trade on unconfirmed calendar effects."}</li>
-                                    </ul>
-                                </article>
-                            </div>
-                            <div className="analysis-deliverables">
-                                <p>{language === "es" ? "Entregables reproducibles en la raíz del proyecto:" : "Reproducible deliverables in the project root:"}</p>
-                                <span>analisis_descriptivo/ · analisis_diagnostico/ · analisis_predictivo/ · analisis_prescriptivo/</span>
-                                <small>{language === "es" ? "Estudio académico experimental; no es asesoría financiera." : "Experimental academic study; not financial advice."}</small>
-                            </div>
-                        </section>
+                        <ExtendedAnalysis language={language} />
 
                         <section className="panel models-panel" id="models">
                             <div className="panel-header section-heading">

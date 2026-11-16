@@ -33,3 +33,5 @@
 - Se agregó sección «Detalles extensos del análisis» y entregables Python separados en analisis_descriptivo/diagnostico/predictivo/prescriptivo; datos de trabajo en analisis_datos/.
 - EDA corte 2026-10-31: 3.278 filas; cierre +395,61%; retorno diario SD 4,68%; Spearman |retorno|-log(volumen)=0,249; calendario exploratorio.
 - Backtest independiente con split cronológico 80/20: cierre persistencia MAE 9,685 USD; ml-service permanece intacto.
+- La página «Detalles extensos» ahora renderiza los cuatro informes completos con tablas, figuras y enlaces de descarga; assets copiados a frontend/next-app/public/analisis para el export estático.
+- Next typecheck/build pasó; la imagen Docker no pudo construirse porque el daemon Docker Desktop no estaba disponible en la sesión.

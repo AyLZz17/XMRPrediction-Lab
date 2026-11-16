@@ -86,3 +86,4 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
   causalidad con asociaciones observacionales.
 - La sección web correspondiente vive en el dashboard Next.js y debe exponer
   interpretación en español e inglés, limitaciones e indicación académica.
+- Los informes completos, tablas descargables y figuras servidas por la app se mantienen en `frontend/next-app/public/analisis/` para incluirse en la exportación estática y en la imagen Nginx del frontend.

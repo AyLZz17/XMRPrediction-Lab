@@ -1,0 +1,8 @@
+serie_hallazgo,n_test,MAE,RMSE
+Cierre · persistencia,656,9.685434062306474,15.035187986547601
+Cierre · media móvil 7,656,15.197350734617654,25.016637603291233
+Rango diario porcentual · MA7,656,2.246708972441585,3.549724923644365
+Log volumen · MA7,656,0.2007401052952866,0.2787651687922901
+Retorno por categoría día · media expansiva,656,2.6620628850716965,3.7894590909193213
+Retorno mensual por categoría mes · media expansiva,22,0.4294484194807817,0.5451592796571938
+Retorno mensual · media expansiva de referencia,22,0.42648222208147996,0.5172553609275318

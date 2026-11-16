@@ -45,4 +45,4 @@ independientes con condiciones que los retornos financieros pueden incumplir.
 El precio y volumen vienen de una sola fuente agregada y no se enlazan con datos
 externos. Las pruebas son exploratorias, no se corrigieron por multiplicidad y
 no constituyen inferencia causal. `ejecutar.py` genera los contrastes de forma
-reproducible.
+reproducible y la figura `resultados/volumen_vs_movimiento.png`.

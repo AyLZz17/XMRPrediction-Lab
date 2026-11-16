@@ -1,0 +1,5 @@
+hallazgo,evidencia,accion,indicador,limite
+Tendencia acumulada del cierre,+395.61% periodo completo; persistencia MAE=9.70 USD,Mantener persistencia como baseline; exigir mejora estable fuera de muestra,MAE/RMSE en ventanas móviles,Cambio histórico no garantiza tendencia futura
+Riesgo y días extremos,Desv. estándar retorno=4.68%; p95 |retorno|=9.65%,Alerta de revisión humana al exceder p95; comprobar fuente y fecha,Frecuencia de alertas y calidad del dato,El umbral se recalibra ante cambios de régimen
+Volumen y magnitud del movimiento,ρ Spearman=0.249; top decil |retorno| medio=5.10%,"Usar volumen como contexto de volatilidad, nunca como señal direccional",Asociación móvil volumen-movimiento,"Asociación exploratoria, sin inferencia causal"
+Categorías calendario,ANOVA weekday p=0.037 sin ajuste; mes p=0.855,No automatizar decisiones por calendario; replicar con ajuste múltiple,Magnitud y estabilidad entre periodos,Diferencias pequeñas e inestables
