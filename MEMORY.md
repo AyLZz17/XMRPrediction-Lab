@@ -30,3 +30,6 @@
 ## Pendiente
 - Probar SMTP/restauración cuando se designen destinatario, credenciales y clave age.
 - La base heredada `aylzz_users` tenía un esquema incompatible; no activar baseline ni migrarla a ciegas.
+- Se agregó sección «Detalles extensos del análisis» y entregables Python separados en analisis_descriptivo/diagnostico/predictivo/prescriptivo; datos de trabajo en analisis_datos/.
+- EDA corte 2026-10-31: 3.278 filas; cierre +395,61%; retorno diario SD 4,68%; Spearman |retorno|-log(volumen)=0,249; calendario exploratorio.
+- Backtest independiente con split cronológico 80/20: cierre persistencia MAE 9,685 USD; ml-service permanece intacto.

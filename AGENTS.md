@@ -75,3 +75,14 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
 - Al limpiar, eliminar solo caches y salidas de build verificadas como
   regenerables; conservar dependencias, secretos, datos persistentes y cambios
   del usuario.
+
+## 3. Entrega de análisis extenso
+
+- `analisis_descriptivo/`, `analisis_diagnostico/`, `analisis_predictivo/` y
+  `analisis_prescriptivo/` contienen informes y scripts educativos en Python;
+  `analisis_datos/` mantiene una copia de trabajo y dependencias compartidas.
+- El dataset de estudio es una copia fechada del histórico diario del servicio;
+  no modificar por este análisis `backend/services/ml-service/` ni prometer
+  causalidad con asociaciones observacionales.
+- La sección web correspondiente vive en el dashboard Next.js y debe exponer
+  interpretación en español e inglés, limitaciones e indicación académica.

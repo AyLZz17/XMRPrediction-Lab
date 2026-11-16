@@ -1,0 +1,7 @@
+relacion,prueba,estadistico,p_valor,n
+retorno_por_dia_semana,ANOVA one-way,2.2377934986566173,0.03700290033216561,3277
+retorno_por_mes,ANOVA one-way,0.5693077426842784,0.85510996805937,3277
+retorno_por_dia_semana,Kruskal-Wallis,17.562741866706347,0.007423081375324769,3277
+retorno_por_mes,Kruskal-Wallis,3.467336825420716,0.9829992113453457,3277
+retorno_absoluto_vs_log_volumen,Spearman,0.24893299562490773,1.7902747207028353e-47,3277
+retorno_absoluto_decil_superior_volumen_vs_resto,Mann-Whitney U,633845.0,2.4481784561056693e-20,3277
