@@ -20,9 +20,12 @@ Archivos de gobierno: `AGENTS.md` (reglas permanentes) · `.agents/skills/` (hab
 - **Documentación fuente:** `backend/services/ml-service/README.md`,
   `backend/services/ml-service/ESTRUCTURA.md` e informes del estudio dentro
   del servicio.
-- `README.md` en la raíz ofrece un resumen conciso del funcionamiento actual
-  y los pasos para iniciar el sistema con Docker Compose; mantenerlo sincronizado
-  y conservar la atribución al repositorio de origen del componente ML.
+- `README.md` en la raíz ofrece un resumen conciso del funcionamiento actual,
+  los pasos para iniciar el sistema con Docker Compose y crear una cuenta de
+  prueba desde consola. Mantenerlo sincronizado y conservar la atribución al
+  repositorio de origen del componente ML. La identidad actual no tiene roles;
+  no describir cuentas normales como administradores hasta implementar
+  autorización por roles.
 - La validación Mermaid de CI usa `.github/puppeteer-config.json` para
   configurar Chromium headless en el runner.
 - Mantener Trivy en CI en una versión cuya acción `setup-trivy` dependiente

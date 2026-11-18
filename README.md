@@ -24,3 +24,21 @@ docker compose up --build
 ```
 
 Abre [http://localhost:8081](http://localhost:8081). Para detener los servicios, presiona `Ctrl+C`.
+
+## Crear una cuenta de prueba
+
+Con los servicios en ejecución, ejecuta las líneas en orden en PowerShell. Cuando aparezca cada prompt, escribe el valor y presiona Enter. Usa una contraseña nueva de al menos 12 caracteres; no se mostrará al escribirla.
+
+```powershell
+$email = Read-Host "Correo de prueba"
+$securePassword = Read-Host "Escribe una contraseña nueva" -AsSecureString
+$password = [System.Net.NetworkCredential]::new("", $securePassword).Password
+$body = @{ email = $email; password = $password } | ConvertTo-Json
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:8081/api/auth/register" `
+  -ContentType "application/json" `
+  -Body $body
+Remove-Variable password, securePassword, body
+```
+
+Después, inicia sesión en [http://localhost:8081/login/](http://localhost:8081/login/). Las cuentas son normales; el proyecto aún no tiene roles ni permisos de administrador.
