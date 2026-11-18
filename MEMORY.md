@@ -3,6 +3,8 @@
 
 ## Contexto actual
 - AyLZz Crypto Lab explora OHLCV diario de XMR y predicciones experimentales; no es asesoría financiera.
+- `README.md` raíz resume el sistema, sus modelos y mercado intradía, y documenta el arranque con Docker Compose.
+- README atribuye el componente ML extraído al autor del [repositorio Monero de Feirt00](https://github.com/Feirt00/Monero.git).
 - `backend/services/ml-service/` conserva su contrato, código, datos y tareas existentes.
 - Stack Docker completo levantado; frontend verificado en `http://127.0.0.1:8081/`.
 - Spring usa `aylzz_identity` (`SECURITY_DB_NAME`); la base heredada `aylzz_users` se conserva intacta.
